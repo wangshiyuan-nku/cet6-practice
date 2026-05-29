@@ -1,0 +1,37 @@
+# User progress & generated files
+output/state.json
+output/*.docx
+output/progress/
+output/latest_unmastered.json
+output/manifest.json
+output/word_sentence_index.json
+cet6_progress.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Temporary/intermediate files
+_pdf_text.txt
+parsed_sentences*.json
+new_sentences/_words_*.txt
+new_sentences/gen_*.py
+new_sentences/_generate_*.py
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Source PDFs (large files)
+*.pdf
+大学英语六级词汇*.docx
+墨墨单词本*
+
+# Built executable (too large for repo, use GitHub Releases)
+*.exe

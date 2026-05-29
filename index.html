@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CET-6 词汇句子练习</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Georgia,'Microsoft YaHei',serif;background:#f5f0eb;color:#2c2416;min-height:100vh}
+.top{background:#2c2416;color:#e8d5b7;padding:12px 0;text-align:center}
+.top h1{font-size:1.2em;font-weight:normal;letter-spacing:2px}
+.tools{display:flex;gap:6px;justify-content:center;padding:8px;flex-wrap:wrap}
+.tb{padding:5px 14px;border:1px solid #8b7355;border-radius:3px;font-size:.78em;
+  cursor:pointer;background:transparent;color:#5c4033}
+.tb:hover{background:#8b7355;color:#fff}
+.tb.green{color:#5a8a5a;border-color:#5a8a5a}.tb.green:hover{background:#5a8a5a;color:#fff}
+.levels{display:flex;gap:8px;justify-content:center;padding:8px}
+.lv{padding:9px 22px;border:2px solid #8b7355;background:transparent;color:#5c4033;
+  font-size:.9em;cursor:pointer;border-radius:4px}
+.lv:hover,.lv.on{background:#8b7355;color:#fff}
+.bar{text-align:center;color:#8b7355;font-size:.8em;margin:4px 0}
+.note{text-align:center;font-size:.76em;min-height:1.2em;margin:2px 0}
+.note.ok{color:#5a8a5a}.note.err{color:#c44}
+.main{max-width:700px;margin:0 auto;padding:0 14px 60px}
+.card{background:#fff;border-radius:8px;padding:26px 28px;margin:12px 0;
+  box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #8b7355;transition:opacity .3s}
+.card.done{opacity:.25}.card.skip{opacity:.45;border-left-color:#c0a060}
+.card .n{font-size:.7em;color:#b0a090;margin-bottom:4px}
+.card .en{font-size:1.05em;line-height:1.65;margin-bottom:8px}
+.card .zh{font-size:.88em;color:#8b7355;line-height:1.55;display:none;
+  padding-top:8px;border-top:1px dashed #e0d5c5;margin-bottom:6px}
+.card .tgl{font-size:.75em;color:#b0a090;cursor:pointer;background:none;
+  border:none;text-decoration:underline;padding:0;margin-bottom:6px}
+.card .acts{display:flex;gap:8px}
+.btn{padding:7px 18px;border:1px solid #8b7355;border-radius:4px;font-size:.85em;cursor:pointer}
+.btn-yes{background:#8b7355;color:#fff}.btn-yes:hover{background:#6b5535}
+.btn-no{background:transparent;color:#8b7355}.btn-no:hover{background:#f0e8dd}
+.empty{text-align:center;padding:80px 0;color:#b0a090;font-size:1em}
+.foot{text-align:center;padding:14px;color:#b0a090;font-size:.7em}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="top"><h1>CET-6 词汇句子练习</h1></div>
+<div id="app"><div style="text-align:center;padding:60px;color:#8b7355">加载中...</div></div>
+
+<script src="data.js"></script>
+<script src="index_data.js"></script>
+<script>
+(function(){
+var pool = window.CET6_DATA || [];
+var idx = window.CET6_INDEX || {};
+if(!pool.length){document.getElementById('app').innerHTML='<div class="empty">数据加载失败</div>';return;}
+
+var T = 10;
+var s2w = idx.sentence_to_words || {};
+var w2r = {};
+pool.forEach(function(w){w2r[w.word.toLowerCase()]=w.freq_rank;});
+
+var n = pool.length;
+var LV = {
+  L1:{label:'基础级',a:0,b:Math.floor(n/3)},
+  L2:{label:'进阶级',a:Math.floor(n/3),b:Math.floor(2*n/3)},
+  L3:{label:'高级',a:Math.floor(2*n/3),b:n}
+};
+
+var state = {}, cur = 'L1', timer = null;
+
+// ---- localStorage ----
+var LS_KEY = 'cet6_progress';
+
+function saveLocal(){
+  try{
+    var cpt = {};
+    Object.keys(LV).forEach(function(k){
+      var ls = state[k];
+      cpt[k] = {active:ls.active,stats:ls.stats,poolSize:ls.poolSize};
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(cpt));
+  }catch(e){}
+}
+
+function loadLocal(){
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    var cpt = JSON.parse(raw);
+    Object.keys(LV).forEach(function(k){
+      if(cpt[k] && cpt[k].active !== undefined){
+        state[k] = cpt[k];
+      }
+    });
+    return true;
+  }catch(e){return false;}
+}
+
+// ---- State ----
+function initState(){
+  Object.keys(LV).forEach(function(k){
+    var lp = pool.slice(LV[k].a, LV[k].b);
+    state[k] = {active:[],stats:{},poolSize:lp.length};
+  });
+}
+
+function refill(k){
+  var ls = state[k];
+  var lp = pool.slice(LV[k].a, LV[k].b);
+  var need = T - ls.active.length;
+  if(need <= 0) return;
+  var aset = {};
+  ls.active.forEach(function(r){aset[r]=true;});
+  var unseen=[], struggle=[], review=[];
+  lp.forEach(function(w){
+    if(aset[w.freq_rank]) return;
+    var st = ls.stats[w.freq_rank]||{};
+    if(!st.exposed) unseen.push(w);
+    else if(st.mastered) review.push(w);
+    else struggle.push(w);
+  });
+  var picked = [];
+  unseen.forEach(function(w){if(picked.length<need)picked.push(w);});
+  struggle.forEach(function(w){if(picked.length<need)picked.push(w);});
+  if(picked.length<need && review.length) picked.push(review[0]);
+  lp.forEach(function(w){
+    if(picked.length>=need) return;
+    if(!aset[w.freq_rank] && picked.indexOf(w)<0) picked.push(w);
+  });
+  picked.forEach(function(w){
+    ls.active.push(w.freq_rank);
+    if(!ls.stats[w.freq_rank]) ls.stats[w.freq_rank]={};
+    ls.stats[w.freq_rank].exposed = (ls.stats[w.freq_rank].exposed||0)+1;
+  });
+}
+
+function master(rank){
+  var ls = state[cur];
+  if(!ls.stats[rank]) ls.stats[rank]={};
+  ls.stats[rank].mastered = true;
+  ls.active = ls.active.filter(function(r){return r!==rank;});
+  var words = s2w[String(rank)]||[];
+  words.forEach(function(wstr){
+    var r = w2r[wstr.toLowerCase()];
+    if(r && r!==rank){
+      if(!ls.stats[r]) ls.stats[r]={};
+      if(!ls.stats[r].mastered) ls.stats[r].mastered=true;
+    }
+  });
+  refill(cur);
+}
+
+function stats(){
+  var t=0,m=0,e=0;
+  Object.keys(LV).forEach(function(k){
+    var ls=state[k]; t+=ls.poolSize||0;
+    Object.keys(ls.stats||{}).forEach(function(rk){
+      if(ls.stats[rk].mastered) m++;
+      if(ls.stats[rk].exposed) e++;
+    });
+  });
+  return {total:t,mastered:m,exposed:e,unseen:t-e};
+}
+
+// ---- Backup ----
+function backup(){
+  var json = JSON.stringify(state, null, 2);
+  var blob = new Blob([json],{type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cet6_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  note('备份已下载','ok');
+}
+
+function restore(){
+  document.getElementById('fin').click();
+}
+
+function handleFile(e){
+  var f = e.target.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(ev){
+    try{
+      var d = JSON.parse(ev.target.result);
+      Object.keys(LV).forEach(function(k){
+        if(d[k] && d[k].active !== undefined) state[k] = d[k];
+      });
+      saveLocal();
+      if(state[cur].active.length===0) refill(cur);
+      note('进度已恢复，共 '+stats().mastered+' 词已掌握','ok');
+      render();
+    }catch(ex){note('文件格式错误','err');}
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+
+function note(t,c){
+  var el = document.getElementById('note');
+  if(!el) return;
+  el.textContent = t; el.className = 'note '+(c||'ok');
+  if(timer) clearTimeout(timer);
+  timer = setTimeout(function(){el.textContent='';el.className='note';},3500);
+}
+
+// ---- Render ----
+function render(){
+  var s = stats();
+  var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
+  var lvHTML = Object.keys(LV).map(function(k){
+    return '<button class="lv'+(cur===k?' on':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
+  }).join('');
+
+  var ls = state[cur];
+  var cards = ls.active.map(function(r){
+    for(var i=0;i<pool.length;i++) if(pool[i].freq_rank===r) return pool[i];
+    return null;
+  }).filter(Boolean);
+
+  var cardsHTML = '';
+  if(cards.length===0){
+    refill(cur);
+    cardsHTML = '<div class="empty">加载中...</div>';
+    setTimeout(render,100); return;
+  }
+  cardsHTML = cards.map(function(c,i){
+    return '<div class="card" id="cd-'+c.freq_rank+'">'+
+      '<div class="n">#'+c.freq_rank+' ['+(i+1)+'/'+cards.length+']</div>'+
+      '<div class="en">'+esc(c.sentence_en)+'</div>'+
+      '<button class="tgl" onclick="var z=this.nextElementSibling;z.style.display=z.style.display==\'block\'?\'none\':\'block\'">查看翻译 / 隐藏</button>'+
+      '<div class="zh">'+esc(c.sentence_zh)+'</div>'+
+      '<div class="acts">'+
+        '<button class="btn btn-yes" data-r="'+c.freq_rank+'">认识</button>'+
+        '<button class="btn btn-no" data-r="'+c.freq_rank+'">跳过</button>'+
+      '</div></div>';
+  }).join('');
+
+  document.getElementById('app').innerHTML =
+    '<input type="file" id="fin" accept=".json">'+
+    '<div class="tools">'+
+      '<button class="tb" id="btn-backup">备份进度</button>'+
+      '<button class="tb green" id="btn-restore">恢复进度</button>'+
+    '</div>'+
+    '<div class="levels">'+lvHTML+'</div>'+
+    '<div class="bar">已掌握 '+s.mastered+'/'+s.total+' ('+pct+'%) | 未见过 '+s.unseen+' 词</div>'+
+    '<div class="note" id="note"></div>'+
+    '<div class="main">'+cardsHTML+'</div>'+
+    '<div class="foot">进度自动保存 · 点「备份」下载到文件以防丢失</div>';
+
+  document.getElementById('btn-backup').onclick = backup;
+  document.getElementById('btn-restore').onclick = restore;
+  document.getElementById('fin').onchange = handleFile;
+  Object.keys(LV).forEach(function(k){
+    document.getElementById('lv-'+k).onclick = function(){cur=k;if(state[cur].active.length===0)refill(cur);render();};
+  });
+  document.querySelectorAll('.btn-yes').forEach(function(b){
+    b.onclick = function(){
+      var r = parseInt(this.getAttribute('data-r'));
+      var cd = document.getElementById('cd-'+r); if(cd) cd.classList.add('done');
+      master(r); saveLocal();
+      setTimeout(render,300);
+    };
+  });
+  document.querySelectorAll('.btn-no').forEach(function(b){
+    b.onclick = function(){
+      var r = parseInt(this.getAttribute('data-r'));
+      var cd = document.getElementById('cd-'+r); if(cd) cd.classList.add('skip');
+      var ls = state[cur];
+      ls.active = ls.active.filter(function(x){return x!==r;});
+      ls.active.push(r);
+      if(!ls.stats[r]) ls.stats[r]={};
+      ls.stats[r].exposed = (ls.stats[r].exposed||0)+1;
+      saveLocal();
+      setTimeout(render,200);
+    };
+  });
+}
+
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// Init
+initState();
+if(!loadLocal()){
+  // no saved state, start fresh
+  Object.keys(LV).forEach(function(k){refill(k);});
+  saveLocal();
+}
+if(state[cur].active.length===0) refill(cur);
+render();
+})();
+</script>
+</body>
+</html>
