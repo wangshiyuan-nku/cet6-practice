@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>CET-6 词汇句子练习</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CET-6">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Georgia,'Microsoft YaHei',serif;background:#f5f0eb;color:#2c2416;min-height:100vh}
@@ -45,6 +50,10 @@ input[type=file]{display:none}
 
 <script src="data.js"></script>
 <script src="index_data.js"></script>
+<script>
+// PWA service worker
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
+</script>
 <script>
 (function(){
 var pool = window.CET6_DATA || [];
