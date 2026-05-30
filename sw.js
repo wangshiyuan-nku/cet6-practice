@@ -1,8 +1,20 @@
-var CACHE = 'cet6-v1';
-var FILES = ['/','index.html','data.js','index_data.js','manifest.json','icon.svg'];
+var CACHE = 'cet6-v2';
+var BASE = self.location.pathname.replace(/\/[^/]*$/, '');
 
 self.addEventListener('install', function(e) {
-  e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(FILES); }));
+  e.waitUntil(
+    caches.open(CACHE).then(function(c) {
+      return c.addAll([
+        BASE + '/',
+        BASE + '/index.html',
+        BASE + '/data.js',
+        BASE + '/index_data.js',
+        BASE + '/manifest.json',
+        BASE + '/icon-192.png',
+        BASE + '/icon-512.png'
+      ]);
+    })
+  );
 });
 
 self.addEventListener('fetch', function(e) {
