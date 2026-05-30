@@ -170,13 +170,41 @@ function stats(){
 
 function shuffle(){
   var ls = state[cur];
-  // Fisher-Yates shuffle
+  var lp = pool.slice(LV[cur].a, LV[cur].b);
+  var aset = {};
+  ls.active.forEach(function(r){aset[r]=true;});
+
+  // Keep unseen/struggling words, remove some mastered/exposed ones
+  var keep = [];
+  var remove = [];
+  ls.active.forEach(function(r){
+    var st = ls.stats[r] || {};
+    if (st.mastered) remove.push(r);        // mastered → likely remove
+    else if (st.exposed > 2) remove.push(r); // seen many times → consider removing
+    else keep.push(r);                       // unseen or few exposures → keep
+  });
+
+  // Keep at least 3, remove up to 7
+  if (keep.length < 3) {
+    while (keep.length < 3 && remove.length > 0) keep.push(remove.pop());
+  }
+  var toRemove = Math.min(7, remove.length);
+  var removeSet = {};
+  remove.slice(0, toRemove).forEach(function(r){ removeSet[r] = true; });
+
+  ls.active = ls.active.filter(function(r){ return !removeSet[r]; });
+
+  // Refill with new words
+  refill(cur);
+
+  // Fisher-Yates shuffle the new active list
   for(var i = ls.active.length - 1; i > 0; i--){
     var j = Math.floor(Math.random() * (i + 1));
     var tmp = ls.active[i]; ls.active[i] = ls.active[j]; ls.active[j] = tmp;
   }
+
   saveLocal();
-  note('已随机打乱','ok');
+  note('已刷新 ' + toRemove + ' 句，优先推荐未掌握的词汇', 'ok');
   render();
 }
 
