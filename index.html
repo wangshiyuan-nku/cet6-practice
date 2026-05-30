@@ -168,6 +168,18 @@ function stats(){
   return {total:t,mastered:m,exposed:e,unseen:t-e};
 }
 
+function shuffle(){
+  var ls = state[cur];
+  // Fisher-Yates shuffle
+  for(var i = ls.active.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = ls.active[i]; ls.active[i] = ls.active[j]; ls.active[j] = tmp;
+  }
+  saveLocal();
+  note('已随机打乱','ok');
+  render();
+}
+
 // ---- Reset ----
 function resetAll(){
   if(!confirm('确定要重置所有学习进度吗？\n\n这将清除所有已掌握、已见过的词汇记录，恢复为初始状态。\n\n此操作不可撤销，建议先「备份进度」。')) return;
@@ -259,6 +271,7 @@ function render(){
     '<div class="tools">'+
       '<button class="tb" id="btn-backup">备份进度</button>'+
       '<button class="tb green" id="btn-restore">恢复进度</button>'+
+      '<button class="tb" id="btn-random">随机排序</button>'+
       '<button class="tb" id="btn-reset" style="color:#c44;border-color:#c44">重置进度</button>'+
     '</div>'+
     '<div class="levels">'+lvHTML+'</div>'+
@@ -269,6 +282,7 @@ function render(){
 
   document.getElementById('btn-backup').onclick = backup;
   document.getElementById('btn-restore').onclick = restore;
+  document.getElementById('btn-random').onclick = shuffle;
   document.getElementById('btn-reset').onclick = resetAll;
   document.getElementById('fin').onchange = handleFile;
   Object.keys(LV).forEach(function(k){
