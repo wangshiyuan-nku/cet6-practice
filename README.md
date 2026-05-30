@@ -2,6 +2,32 @@
 
 大学英语六级词汇句子练习工具。通过「读句子 → 看翻译 → 判断是否掌握」的方式高效自测词汇量，覆盖约 8,000 个六级大纲词汇。
 
+## 如何获取
+
+### 方式一：下载 ZIP（推荐，无需安装任何工具）
+
+1. 点击仓库右上角绿色 **Code** 按钮
+2. 选择 **Download ZIP**
+3. 解压后双击 `index.html` 即可使用
+
+### 方式二：命令行
+
+```bash
+git clone https://github.com/wangshiyuan-nku/cet6-practice.git
+cd cet6-practice
+# 双击 index.html 即可
+```
+
+### 方式三：桌面版 (.exe)
+
+前往 [Releases](https://github.com/wangshiyuan-nku/cet6-practice/releases) 下载 `CET6_词汇练习.exe`，双击运行。
+
+（需要在仓库页面手动创建 Release 并上传 .exe 文件）
+
+### 方式四：在线版
+
+直接访问 **https://wangshiyuan-nku.github.io/cet6-practice**
+
 ## 如何使用
 
 ### 方法一：安装为 App（推荐，手机电脑均支持）
