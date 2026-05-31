@@ -9,44 +9,67 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <style>
+:root{
+--bg:#f5f0eb;--card:#fff;--text:#2c2416;--muted:#8b7355;--light:#b0a090;
+--header-bg:#2c2416;--header-text:#e8d5b7;--border:#8b7355;--dash:#e0d5c5;
+--know-bg:#8b7355;--know-text:#fff;--skip-bg:transparent;--skip-text:#8b7355;
+--danger:#c44;--warn:#c0a060;--stat-bg:#ede6dd
+}
+body.dark{
+--bg:#1a1815;--card:#2a2520;--text:#d8d0c8;--muted:#a09080;--light:#706050;
+--header-bg:#0d0b08;--header-text:#c0b090;--border:#5a4a38;--dash:#3a3028;
+--know-bg:#8b7355;--know-text:#fff;--skip-bg:transparent;--skip-text:#a09080;
+--danger:#e55;--warn:#a08040;--stat-bg:#252018
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Georgia,'Microsoft YaHei',serif;background:#f5f0eb;color:#2c2416;min-height:100vh}
-.top{background:#2c2416;color:#e8d5b7;padding:12px 0;text-align:center}
-.top h1{font-size:1.2em;font-weight:normal;letter-spacing:2px}
-.tools{display:flex;gap:6px;justify-content:center;padding:8px;flex-wrap:wrap}
-.tb{padding:5px 14px;border:1px solid #8b7355;border-radius:3px;font-size:.78em;
-  cursor:pointer;background:transparent;color:#5c4033}
-.tb:hover{background:#8b7355;color:#fff}
+body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(--text);min-height:100vh}
+.top{background:var(--header-bg);color:var(--header-text);padding:10px 0;text-align:center}
+.top h1{font-size:1.15em;font-weight:normal;letter-spacing:2px}
+.top .info{font-size:.7em;opacity:.7;margin-top:2px}
+.tools{display:flex;gap:5px;justify-content:center;padding:6px;flex-wrap:wrap}
+.tb{padding:4px 12px;border:1px solid var(--border);border-radius:3px;font-size:.74em;
+  cursor:pointer;background:transparent;color:var(--muted)}
+.tb:hover{background:var(--border);color:#fff}
 .tb.green{color:#5a8a5a;border-color:#5a8a5a}.tb.green:hover{background:#5a8a5a;color:#fff}
-.levels{display:flex;gap:8px;justify-content:center;padding:8px}
-.lv{padding:9px 22px;border:2px solid #8b7355;background:transparent;color:#5c4033;
-  font-size:.9em;cursor:pointer;border-radius:4px}
-.lv:hover,.lv.on{background:#8b7355;color:#fff}
-.bar{text-align:center;color:#8b7355;font-size:.8em;margin:4px 0}
-.note{text-align:center;font-size:.76em;min-height:1.2em;margin:2px 0}
-.note.ok{color:#5a8a5a}.note.err{color:#c44}
-.main{max-width:700px;margin:0 auto;padding:0 14px 60px}
-.card{background:#fff;border-radius:8px;padding:26px 28px;margin:12px 0;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid #8b7355;transition:opacity .3s}
-.card.done{opacity:.25}.card.skip{opacity:.45;border-left-color:#c0a060}
-.card .n{font-size:.7em;color:#b0a090;margin-bottom:4px}
-.card .en{font-size:1.05em;line-height:1.65;margin-bottom:8px}
-.card .zh{font-size:.88em;color:#8b7355;line-height:1.55;display:none;
-  padding-top:8px;border-top:1px dashed #e0d5c5;margin-bottom:6px}
-.card .tgl{font-size:.75em;color:#b0a090;cursor:pointer;background:none;
+.tb.danger{color:var(--danger);border-color:var(--danger)}
+.tb.danger:hover{background:var(--danger);color:#fff}
+.levels{display:flex;gap:6px;justify-content:center;padding:6px}
+.lv{padding:8px 18px;border:2px solid var(--border);background:transparent;color:var(--muted);
+  font-size:.85em;cursor:pointer;border-radius:4px}
+.lv:hover,.lv.on{background:var(--border);color:#fff}
+.stats-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:6px 10px;font-size:.76em;color:var(--muted)}
+.stats-bar span{background:var(--stat-bg);padding:3px 10px;border-radius:3px;white-space:nowrap}
+.note{text-align:center;font-size:.74em;min-height:1.1em;margin:2px 0}
+.note.ok{color:#5a8a5a}.note.err{color:var(--danger)}
+.main{max-width:700px;margin:0 auto;padding:0 14px 70px}
+.card{background:var(--card);border-radius:8px;padding:24px 26px;margin:12px 0;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid var(--border);transition:opacity .3s}
+.card.done{opacity:.25}.card.skip{opacity:.5;border-left-color:var(--warn)}
+.card .hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.card .rnk{font-size:.68em;color:var(--light)}
+.card .cnt{font-size:.65em;color:var(--warn);font-style:italic}
+.card .en{font-size:1.02em;line-height:1.6;margin-bottom:8px}
+.card .sep{height:14px}
+.card .zh{font-size:.85em;color:var(--muted);line-height:1.5;display:none;
+  padding-top:8px;border-top:1px dashed var(--dash);margin-bottom:8px}
+.card .tgl{font-size:.75em;color:var(--light);cursor:pointer;background:none;
   border:none;text-decoration:underline;padding:0;margin-bottom:6px}
-.card .acts{display:flex;gap:8px}
-.btn{padding:7px 18px;border:1px solid #8b7355;border-radius:4px;font-size:.85em;cursor:pointer}
-.btn-yes{background:#8b7355;color:#fff}.btn-yes:hover{background:#6b5535}
-.btn-no{background:transparent;color:#8b7355}.btn-no:hover{background:#f0e8dd}
-.empty{text-align:center;padding:80px 0;color:#b0a090;font-size:1em}
-.foot{text-align:center;padding:14px;color:#b0a090;font-size:.7em}
+.card .acts{margin-top:14px;display:flex;gap:8px}
+.btn{padding:7px 18px;border:1px solid var(--border);border-radius:4px;font-size:.85em;cursor:pointer}
+.btn-yes{background:var(--know-bg);color:var(--know-text)}.btn-yes:hover{opacity:.85}
+.btn-no{background:var(--skip-bg);color:var(--skip-text)}.btn-no:hover{background:var(--stat-bg)}
+.empty{text-align:center;padding:80px 0;color:var(--light);font-size:.95em}
+.foot{text-align:center;padding:10px;color:var(--light);font-size:.68em;position:fixed;bottom:0;width:100%;background:var(--bg)}
 input[type=file]{display:none}
+.weak-list{margin:10px 0;font-size:.82em;max-height:200px;overflow-y:auto}
+.weak-list table{width:100%;border-collapse:collapse}
+.weak-list td{padding:4px 8px;border-bottom:1px solid var(--dash)}
+.weak-list .wn{color:var(--warn);font-weight:bold}
 </style>
 </head>
 <body>
-<div class="top"><h1>CET-6 词汇句子练习</h1></div>
-<div id="app"><div style="text-align:center;padding:60px;color:#8b7355">加载中...</div></div>
+<div class="top"><h1>CET-6 词汇句子练习</h1><div class="info" id="today-info"></div></div>
+<div id="app"><div style="text-align:center;padding:60px;color:var(--muted)">加载中...</div></div>
 
 <script src="data.js"></script>
 <script src="index_data.js"></script>
@@ -72,7 +95,9 @@ var LV = {
   L3:{label:'高级',a:Math.floor(2*n/3),b:n}
 };
 
-var state = {}, cur = 'L1', timer = null;
+var state = {}, cur = 'L1', timer = null, darkMode = false;
+var todayKey = new Date().toISOString().slice(0,10);
+var todayLog = {}; // {date: {know: N, skip: N, seen: Set}}
 
 // ---- localStorage ----
 var LS_KEY = 'cet6_progress';
@@ -81,9 +106,10 @@ function saveLocal(){
   try{
     var cpt = {};
     Object.keys(LV).forEach(function(k){
-      var ls = state[k];
-      cpt[k] = {active:ls.active,stats:ls.stats,poolSize:ls.poolSize};
+      cpt[k] = {active:state[k].active,stats:state[k].stats,poolSize:state[k].poolSize};
     });
+    cpt._todayLog = todayLog;
+    cpt._darkMode = darkMode;
     localStorage.setItem(LS_KEY, JSON.stringify(cpt));
   }catch(e){}
 }
@@ -94,29 +120,36 @@ function loadLocal(){
     if(!raw) return false;
     var cpt = JSON.parse(raw);
     Object.keys(LV).forEach(function(k){
-      if(cpt[k] && cpt[k].active !== undefined){
-        state[k] = cpt[k];
-      }
+      if(cpt[k] && cpt[k].active !== undefined) state[k] = cpt[k];
     });
+    if(cpt._todayLog) todayLog = cpt._todayLog;
+    if(cpt._darkMode !== undefined) darkMode = cpt._darkMode;
     return true;
   }catch(e){return false;}
+}
+
+function todayStats(){
+  var log = todayLog[todayKey] || {know:0, skip:0};
+  return {know:log.know||0, skip:log.skip||0, total:(log.know||0)+(log.skip||0)};
+}
+
+function logToday(action){
+  if(!todayLog[todayKey]) todayLog[todayKey] = {know:0, skip:0};
+  todayLog[todayKey][action] = (todayLog[todayKey][action]||0) + 1;
 }
 
 // ---- State ----
 function initState(){
   Object.keys(LV).forEach(function(k){
-    var lp = pool.slice(LV[k].a, LV[k].b);
-    state[k] = {active:[],stats:{},poolSize:lp.length};
+    state[k] = {active:[],stats:{},poolSize:pool.slice(LV[k].a,LV[k].b).length};
   });
 }
 
 function refill(k){
-  var ls = state[k];
-  var lp = pool.slice(LV[k].a, LV[k].b);
+  var ls = state[k], lp = pool.slice(LV[k].a, LV[k].b);
   var need = T - ls.active.length;
   if(need <= 0) return;
-  var aset = {};
-  ls.active.forEach(function(r){aset[r]=true;});
+  var aset = {}; ls.active.forEach(function(r){aset[r]=true;});
   var unseen=[], struggle=[], review=[];
   lp.forEach(function(w){
     if(aset[w.freq_rank]) return;
@@ -124,6 +157,10 @@ function refill(k){
     if(!st.exposed) unseen.push(w);
     else if(st.mastered) review.push(w);
     else struggle.push(w);
+  });
+  // Sort struggle by skip count descending (most skipped = most need practice)
+  struggle.sort(function(a,b){
+    return (ls.stats[b.freq_rank]||{}).skipCount - (ls.stats[a.freq_rank]||{}).skipCount;
   });
   var picked = [];
   unseen.forEach(function(w){if(picked.length<need)picked.push(w);});
@@ -157,83 +194,60 @@ function master(rank){
 }
 
 function stats(){
-  var t=0,m=0,e=0;
+  var t=0,m=0,e=0,sk=0;
   Object.keys(LV).forEach(function(k){
     var ls=state[k]; t+=ls.poolSize||0;
     Object.keys(ls.stats||{}).forEach(function(rk){
       if(ls.stats[rk].mastered) m++;
       if(ls.stats[rk].exposed) e++;
+      sk += (ls.stats[rk].skipCount||0);
     });
   });
-  return {total:t,mastered:m,exposed:e,unseen:t-e};
+  return {total:t,mastered:m,exposed:e,unseen:t-e,totalSkips:sk};
 }
 
-function shuffle(){
-  var ls = state[cur];
-  var lp = pool.slice(LV[cur].a, LV[cur].b);
-  var aset = {};
-  ls.active.forEach(function(r){aset[r]=true;});
+// ---- Dark mode ----
+function toggleDark(){
+  darkMode = !darkMode;
+  if(darkMode){document.body.classList.add('dark');}
+  else{document.body.classList.remove('dark');}
+  saveLocal();
+  render();
+}
 
-  // Keep unseen/struggling words, remove some mastered/exposed ones
-  var keep = [];
-  var remove = [];
-  ls.active.forEach(function(r){
-    var st = ls.stats[r] || {};
-    if (st.mastered) remove.push(r);        // mastered → likely remove
-    else if (st.exposed > 2) remove.push(r); // seen many times → consider removing
-    else keep.push(r);                       // unseen or few exposures → keep
+// ---- Weak words ----
+function getWeakWords(limit){
+  var all = [];
+  Object.keys(LV).forEach(function(k){
+    var ls = state[k];
+    Object.keys(ls.stats||{}).forEach(function(rk){
+      var st = ls.stats[rk]||{};
+      if(st.skipCount >= 2 && !st.mastered){
+        for(var i=0;i<pool.length;i++){
+          if(pool[i].freq_rank === parseInt(rk)){
+            all.push({rank:rk, word:pool[i].word, skips:st.skipCount, meaning:pool[i].meaning});
+            break;
+          }
+        }
+      }
+    });
   });
-
-  // Keep at least 3, remove up to 7
-  if (keep.length < 3) {
-    while (keep.length < 3 && remove.length > 0) keep.push(remove.pop());
-  }
-  var toRemove = Math.min(7, remove.length);
-  var removeSet = {};
-  remove.slice(0, toRemove).forEach(function(r){ removeSet[r] = true; });
-
-  ls.active = ls.active.filter(function(r){ return !removeSet[r]; });
-
-  // Refill with new words
-  refill(cur);
-
-  // Fisher-Yates shuffle the new active list
-  for(var i = ls.active.length - 1; i > 0; i--){
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = ls.active[i]; ls.active[i] = ls.active[j]; ls.active[j] = tmp;
-  }
-
-  saveLocal();
-  note('已刷新 ' + toRemove + ' 句，优先推荐未掌握的词汇', 'ok');
-  render();
+  all.sort(function(a,b){return b.skips - a.skips;});
+  return all.slice(0, limit||15);
 }
 
-// ---- Reset ----
-function resetAll(){
-  if(!confirm('确定要重置所有学习进度吗？\n\n这将清除所有已掌握、已见过的词汇记录，恢复为初始状态。\n\n此操作不可撤销，建议先「备份进度」。')) return;
-  localStorage.removeItem(LS_KEY);
-  initState();
-  Object.keys(LV).forEach(function(k){refill(k);});
-  saveLocal();
-  note('进度已重置，从零开始','ok');
-  render();
-}
-
-// ---- Backup ----
+// ---- Backup/Reset ----
 function backup(){
   var json = JSON.stringify(state, null, 2);
   var blob = new Blob([json],{type:'application/json'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'cet6_backup_' + new Date().toISOString().slice(0,10) + '.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  a.click(); URL.revokeObjectURL(a.href);
   note('备份已下载','ok');
 }
 
-function restore(){
-  document.getElementById('fin').click();
-}
+function restore(){document.getElementById('fin').click();}
 
 function handleFile(e){
   var f = e.target.files[0]; if(!f) return;
@@ -250,22 +264,90 @@ function handleFile(e){
       render();
     }catch(ex){note('文件格式错误','err');}
   };
-  r.readAsText(f);
-  e.target.value = '';
+  r.readAsText(f); e.target.value = '';
+}
+
+function resetAll(){
+  if(!confirm('确定要重置所有学习进度吗？此操作不可撤销，建议先「备份进度」。')) return;
+  localStorage.removeItem(LS_KEY);
+  initState(); Object.keys(LV).forEach(function(k){refill(k);});
+  todayLog = {}; saveLocal();
+  note('进度已重置','ok'); render();
+}
+
+function shuffle(){
+  var ls = state[cur], lp = pool.slice(LV[cur].a, LV[cur].b);
+  var aset = {}; ls.active.forEach(function(r){aset[r]=true;});
+  var keep=[], remove=[];
+  ls.active.forEach(function(r){
+    var st = ls.stats[r]||{};
+    if(st.mastered) remove.push(r);
+    else if(st.exposed>2) remove.push(r);
+    else keep.push(r);
+  });
+  if(keep.length<3){while(keep.length<3 && remove.length>0) keep.push(remove.pop());}
+  var toRemove = Math.min(7, remove.length);
+  var removeSet = {}; remove.slice(0,toRemove).forEach(function(r){removeSet[r]=true;});
+  ls.active = ls.active.filter(function(r){return !removeSet[r];});
+  refill(cur);
+  for(var i=ls.active.length-1;i>0;i--){
+    var j=Math.floor(Math.random()*(i+1));
+    var tmp=ls.active[i];ls.active[i]=ls.active[j];ls.active[j]=tmp;
+  }
+  saveLocal(); note('已刷新 '+toRemove+' 句','ok'); render();
 }
 
 function note(t,c){
-  var el = document.getElementById('note');
-  if(!el) return;
+  var el = document.getElementById('note'); if(!el) return;
   el.textContent = t; el.className = 'note '+(c||'ok');
   if(timer) clearTimeout(timer);
   timer = setTimeout(function(){el.textContent='';el.className='note';},3500);
 }
 
+// ---- Stats panel ----
+function showStatsPanel(){
+  var s = stats(), ts = todayStats();
+  var weak = getWeakWords(15);
+  var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
+
+  var weakHTML = '';
+  if(weak.length > 0){
+    weakHTML = '<div class="weak-list"><table>';
+    weak.forEach(function(w){
+      weakHTML += '<tr><td class="wn">跳过'+w.skips+'次</td><td>'+esc(w.word)+'</td><td style="font-size:.75em;color:var(--light)">'+esc((w.meaning||'').slice(0,40))+'</td></tr>';
+    });
+    weakHTML += '</table></div>';
+  } else {
+    weakHTML = '<p style="color:var(--light);font-size:.82em">暂无薄弱词汇</p>';
+  }
+
+  var panelHTML =
+    '<div class="card" style="border-left-color:#5a8a5a">'+
+      '<div style="font-size:.9em;margin-bottom:8px;color:var(--muted)">学习统计</div>'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
+        '<span>今日已学 <b>'+ts.total+'</b> 句（掌握 '+ts.know+' | 跳过 '+ts.skip+'）</span>'+
+      '</div>'+
+      '<div style="font-size:.82em;color:var(--muted);margin-bottom:8px">'+
+        '累计掌握 <b>'+s.mastered+'</b> / '+s.total+' ('+pct+'%) | 未见过 '+s.unseen+' 词'+
+      '</div>'+
+      '<div style="font-size:.85em;color:var(--muted);margin-bottom:4px">薄弱词汇（跳过≥2次）：</div>'+weakHTML+
+      '<button class="btn btn-yes" style="margin-top:8px" onclick="render()">关闭</button>'+
+    '</div>';
+  document.getElementById('app').innerHTML =
+    '<input type="file" id="fin" accept=".json"><div class="main">'+panelHTML+'</div>';
+}
+
 // ---- Render ----
 function render(){
-  var s = stats();
+  var s = stats(), ts = todayStats();
   var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
+
+  document.getElementById('today-info').textContent =
+    '今日：已学 '+ts.total+' 句 | 掌握 '+ts.know+' | 跳过 '+ts.skip +
+    ' | 累计掌握 '+s.mastered+' 词 ('+pct+'%)';
+
+  if(darkMode) document.body.classList.add('dark');
+
   var lvHTML = Object.keys(LV).map(function(k){
     return '<button class="lv'+(cur===k?' on':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
   }).join('');
@@ -283,11 +365,15 @@ function render(){
     setTimeout(render,100); return;
   }
   cardsHTML = cards.map(function(c,i){
+    var st = ls.stats[c.freq_rank]||{};
+    var skipCount = st.skipCount||0;
+    var cntHTML = skipCount > 0 ? '<span class="cnt">上次未掌握'+(skipCount>1?' · 共'+skipCount+'次':'')+'</span>' : '';
     return '<div class="card" id="cd-'+c.freq_rank+'">'+
-      '<div class="n">#'+c.freq_rank+' ['+(i+1)+'/'+cards.length+']</div>'+
+      '<div class="hdr"><span class="rnk">#'+c.freq_rank+' ['+(i+1)+'/'+cards.length+']</span>'+cntHTML+'</div>'+
       '<div class="en">'+esc(c.sentence_en)+'</div>'+
       '<button class="tgl" onclick="var z=this.nextElementSibling;z.style.display=z.style.display==\'block\'?\'none\':\'block\'">查看翻译 / 隐藏</button>'+
       '<div class="zh">'+esc(c.sentence_zh)+'</div>'+
+      '<div class="sep"></div>'+
       '<div class="acts">'+
         '<button class="btn btn-yes" data-r="'+c.freq_rank+'">认识</button>'+
         '<button class="btn btn-no" data-r="'+c.freq_rank+'">跳过</button>'+
@@ -297,21 +383,29 @@ function render(){
   document.getElementById('app').innerHTML =
     '<input type="file" id="fin" accept=".json">'+
     '<div class="tools">'+
+      '<button class="tb" id="btn-stats">学习统计</button>'+
       '<button class="tb" id="btn-backup">备份进度</button>'+
       '<button class="tb green" id="btn-restore">恢复进度</button>'+
-      '<button class="tb" id="btn-random">随机排序</button>'+
-      '<button class="tb" id="btn-reset" style="color:#c44;border-color:#c44">重置进度</button>'+
+      '<button class="tb" id="btn-random">随机刷新</button>'+
+      '<button class="tb" id="btn-dark">'+(darkMode?'浅色模式':'深色模式')+'</button>'+
+      '<button class="tb danger" id="btn-reset">重置进度</button>'+
     '</div>'+
     '<div class="levels">'+lvHTML+'</div>'+
-    '<div class="bar">已掌握 '+s.mastered+'/'+s.total+' ('+pct+'%) | 未见过 '+s.unseen+' 词</div>'+
+    '<div class="stats-bar">'+
+      '<span>今日 '+ts.know+' 掌握 / '+ts.skip+' 跳过</span>'+
+      '<span>累计 '+s.mastered+'/'+s.total+' ('+pct+'%)</span>'+
+      '<span>未见过 '+s.unseen+' 词</span>'+
+    '</div>'+
     '<div class="note" id="note"></div>'+
     '<div class="main">'+cardsHTML+'</div>'+
-    '<div class="foot">进度自动保存 · 点「备份」下载到文件以防丢失</div>';
+    '<div class="foot">快捷键：K 认识 · S 跳过 · T 显示翻译 · R 刷新 · D 深色模式 · B 备份</div>';
 
   document.getElementById('btn-backup').onclick = backup;
   document.getElementById('btn-restore').onclick = restore;
   document.getElementById('btn-random').onclick = shuffle;
+  document.getElementById('btn-dark').onclick = toggleDark;
   document.getElementById('btn-reset').onclick = resetAll;
+  document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('fin').onchange = handleFile;
   Object.keys(LV).forEach(function(k){
     document.getElementById('lv-'+k).onclick = function(){cur=k;if(state[cur].active.length===0)refill(cur);render();};
@@ -320,7 +414,7 @@ function render(){
     b.onclick = function(){
       var r = parseInt(this.getAttribute('data-r'));
       var cd = document.getElementById('cd-'+r); if(cd) cd.classList.add('done');
-      master(r); saveLocal();
+      master(r); logToday('know'); saveLocal();
       setTimeout(render,300);
     };
   });
@@ -333,7 +427,8 @@ function render(){
       ls.active.push(r);
       if(!ls.stats[r]) ls.stats[r]={};
       ls.stats[r].exposed = (ls.stats[r].exposed||0)+1;
-      saveLocal();
+      ls.stats[r].skipCount = (ls.stats[r].skipCount||0)+1;
+      logToday('skip'); saveLocal();
       setTimeout(render,200);
     };
   });
@@ -341,14 +436,27 @@ function render(){
 
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e){
+  if(e.target.tagName==='INPUT') return;
+  switch(e.key.toLowerCase()){
+    case 'k': var b=document.querySelector('.btn-yes'); if(b) b.click(); break;
+    case 's': var b=document.querySelector('.btn-no'); if(b) b.click(); break;
+    case 't': var b=document.querySelector('.tgl'); if(b) b.click(); break;
+    case 'r': shuffle(); break;
+    case 'd': toggleDark(); break;
+    case 'b': backup(); break;
+  }
+});
+
 // Init
 initState();
 if(!loadLocal()){
-  // no saved state, start fresh
   Object.keys(LV).forEach(function(k){refill(k);});
   saveLocal();
 }
 if(state[cur].active.length===0) refill(cur);
+if(darkMode) document.body.classList.add('dark');
 render();
 })();
 </script>
