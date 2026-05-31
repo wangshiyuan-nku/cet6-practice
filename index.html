@@ -101,17 +101,31 @@ var todayLog = {};
 // ---- localStorage ----
 var LS_KEY = 'cet6_progress';
 
+var STATE_VERSION = 2;
+
 function saveLocal(){
   try{
-    var cpt = {};
+    var cpt = {_version: STATE_VERSION};
     Object.keys(LV).forEach(function(k){
       cpt[k] = {active:state[k].active,stats:state[k].stats,poolSize:state[k].poolSize};
     });
     cpt._todayLog = todayLog; cpt._darkMode = darkMode;
     localStorage.setItem(LS_KEY, JSON.stringify(cpt));
   }catch(e){}
-  // Also auto-save to cloud file if enabled
-  if(syncHandle) autoSave();
+}
+
+function migrateState(cpt, fromVer){
+  if(fromVer < 2){
+    Object.keys(LV).forEach(function(k){
+      if(!cpt[k]) return;
+      Object.keys(cpt[k].stats||{}).forEach(function(rk){
+        if(cpt[k].stats[rk].skipCount === undefined) cpt[k].stats[rk].skipCount = 0;
+      });
+    });
+    if(!cpt._todayLog) cpt._todayLog = {};
+    if(cpt._darkMode === undefined) cpt._darkMode = false;
+  }
+  return cpt;
 }
 
 function loadLocal(){
@@ -119,6 +133,8 @@ function loadLocal(){
     var raw = localStorage.getItem(LS_KEY);
     if(!raw) return false;
     var cpt = JSON.parse(raw);
+    var ver = cpt._version || 1;
+    if(ver < STATE_VERSION) cpt = migrateState(cpt, ver);
     Object.keys(LV).forEach(function(k){
       if(cpt[k] && cpt[k].active !== undefined) state[k] = cpt[k];
     });
@@ -230,113 +246,17 @@ function toggleDark(){
   render();
 }
 
-// ---- Auto-sync via cloud file (File System Access API) ----
-var syncHandle = null;  // FileSystemFileHandle, persisted across sessions via IndexedDB
-
-// Try to restore saved file handle from IndexedDB on startup
-(function initSync(){
-  if(!window.indexedDB) return;
-  var req = indexedDB.open('cet6_sync', 1);
-  req.onupgradeneeded = function(e){ e.target.result.createObjectStore('state'); };
-  req.onsuccess = function(e){
-    var tx = e.target.result.transaction('state', 'readonly');
-    var getReq = tx.objectStore('state').get('syncHandle');
-    getReq.onsuccess = function(){
-      if(getReq.result){
-        // Verify handle is still valid
-        getReq.result.queryPermission({mode:'readwrite'}).then(function(p){
-          if(p==='granted'){ syncHandle = getReq.result; autoLoad(); }
-        }).catch(function(){});
-      } else {
-        hasAutoSync();
-      }
-    };
-  };
-})();
-
-function hasAutoSync(){
-  if(syncHandle && window.showSaveFilePicker){
-    note('自动同步已启用', 'ok');
-  }
-}
-
-function saveSyncHandle(){
-  if(!window.indexedDB || !syncHandle) return;
-  var req = indexedDB.open('cet6_sync', 1);
-  req.onsuccess = function(e){
-    var tx = e.target.result.transaction('state', 'readwrite');
-    tx.objectStore('state').put(syncHandle, 'syncHandle');
-  };
-}
-
-async function autoSave(){
-  if(!syncHandle) return;
-  try{
-    var w = await syncHandle.createWritable();
-    await w.write(JSON.stringify(state, null, 2));
-    await w.close();
-  }catch(e){ syncHandle = null; }
-}
-
-async function autoLoad(){
-  if(!syncHandle) return;
-  try{
-    var f = await syncHandle.getFile();
-    var text = await f.text();
-    var d = JSON.parse(text);
-    Object.keys(LV).forEach(function(k){
-      if(d[k] && d[k].active !== undefined) state[k] = d[k];
-    });
-    saveLocal();
-    if(state[cur].active.length===0) refill(cur);
-    render();
-    note('已从云端加载进度，共 '+stats().mastered+' 词已掌握', 'ok');
-  }catch(e){}
-}
-
-async function enableSync(){
-  if(!window.showSaveFilePicker){
-    note('此浏览器不支持自动同步，请用备份/恢复', 'err');
-    return;
-  }
-  try{
-    var h = await window.showSaveFilePicker({
-      suggestedName: 'cet6_progress.json',
-      types: [{description:'JSON', accept:{'application/json':['.json']}}]
-    });
-    // Verify write permission
-    var w = await h.createWritable();
-    await w.write(JSON.stringify(state, null, 2));
-    await w.close();
-    syncHandle = h;
-    saveSyncHandle();
-    note('自动同步已启用！每次学习自动保存到文件', 'ok');
-  }catch(e){
-    if(e.name !== 'AbortError') note('启用失败，请重试', 'err');
-  }
-}
-
-function disableSync(){
-  syncHandle = null;
-  if(window.indexedDB){
-    var req = indexedDB.open('cet6_sync', 1);
-    req.onsuccess = function(e){
-      e.target.result.transaction('state','readwrite').objectStore('state').delete('syncHandle');
-    };
-  }
-  note('自动同步已关闭', 'ok');
-  render();
-}
-
+// ---- Backup / Restore ----
 function backup(){
-  if(syncHandle){ note('已启用自动同步，无需手动备份', 'ok'); return; }
-  var json = JSON.stringify(state, null, 2);
-  var blob = new Blob([json],{type:'application/json'});
+  var out = {_version: STATE_VERSION};
+  Object.keys(LV).forEach(function(k){out[k] = state[k];});
+  out._todayLog = todayLog; out._darkMode = darkMode;
+  var blob = new Blob([JSON.stringify(out, null, 2)],{type:'application/json'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'cet6_progress_' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = 'cet6_backup_' + new Date().toISOString().slice(0,10) + '.json';
   a.click(); URL.revokeObjectURL(a.href);
-  note('已下载，建议保存到 iCloud/Dropbox 文件夹', 'ok');
+  note('进度已备份','ok');
 }
 
 function restore(){document.getElementById('fin').click();}
@@ -347,9 +267,13 @@ function handleFile(e){
   r.onload = function(ev){
     try{
       var d = JSON.parse(ev.target.result);
+      var ver = d._version || 1;
+      if(ver < STATE_VERSION) d = migrateState(d, ver);
       Object.keys(LV).forEach(function(k){
         if(d[k] && d[k].active !== undefined) state[k] = d[k];
       });
+      if(d._todayLog) todayLog = d._todayLog;
+      if(d._darkMode !== undefined) darkMode = d._darkMode;
       saveLocal();
       if(state[cur].active.length===0) refill(cur);
       note('进度已恢复，共 '+stats().mastered+' 词已掌握','ok');
@@ -485,7 +409,9 @@ function render(){
     '<input type="file" id="fin" accept=".json">'+
     '<div class="tools">'+
       '<button class="tb" id="btn-stats">学习统计</button>'+
-      '<button class="tb green" id="btn-sync">'+(syncHandle?'已同步':'启用同步')+'</button>'+
+      '<button class="tb" id="btn-backup">备份进度</button>'+
+      '<button class="tb green" id="btn-restore">恢复进度</button>'+
+      '<button class="tb" id="btn-sync" title="即将推出">云同步</button>'+
       '<button class="tb" id="btn-random">随机刷新</button>'+
       '<button class="tb" id="btn-dark">'+(darkMode?'浅色模式':'深色模式')+'</button>'+
       '<button class="tb danger" id="btn-reset">重置进度</button>'+
@@ -498,14 +424,12 @@ function render(){
     '</div>'+
     '<div class="note" id="note"></div>'+
     '<div class="main">'+cardsHTML+'</div>'+
-    '<div class="foot">'+(syncHandle?'自动同步已启用':'点「启用同步」选择云盘文件，实现自动保存')+' | K 认识 · S 跳过 · T 翻译 · R 刷新 · D 深色</div>';
+    '<div class="foot">备份/恢复进度文件实现多设备同步 | K 认识 · S 跳过 · T 翻译 · R 刷新 · D 深色</div>';
 
   // Bind all events
-  document.getElementById('btn-sync').onclick = function(){
-    if(syncHandle){ disableSync(); }
-    else { enableSync(); }
-    setTimeout(function(){ render(); }, 500);
-  };
+  document.getElementById('btn-backup').onclick = backup;
+  document.getElementById('btn-restore').onclick = restore;
+  document.getElementById('btn-sync').onclick = function(){ note('云同步功能即将推出，敬请期待', 'ok'); };
   document.getElementById('btn-random').onclick = shuffle;
   document.getElementById('btn-dark').onclick = toggleDark;
   document.getElementById('btn-reset').onclick = resetAll;
