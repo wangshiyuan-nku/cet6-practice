@@ -49,13 +49,13 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 .card .rnk{font-size:.68em;color:var(--light)}
 .card .cnt{font-size:.65em;color:var(--warn);font-style:italic}
 .card .en{font-size:1.02em;line-height:1.6;margin-bottom:8px}
-.card .sep{height:18px}
+.card .sep{height:20px}
 .card .zh{font-size:.85em;color:var(--muted);line-height:1.5;display:none;
   padding-top:8px;border-top:1px dashed var(--dash);margin-bottom:8px}
 .card .tgl{font-size:.75em;color:var(--light);cursor:pointer;background:none;
-  border:none;text-decoration:underline;padding:0;margin-bottom:6px}
-.card .acts{margin-top:16px;display:flex;gap:12px}
-.btn{padding:7px 18px;border:1px solid var(--border);border-radius:4px;font-size:.85em;cursor:pointer}
+  border:none;text-decoration:underline;padding:0;margin-bottom:10px;display:block}
+.card .acts{margin-top:18px;display:flex;gap:14px}
+.btn{padding:8px 20px;border:1px solid var(--border);border-radius:4px;font-size:.85em;cursor:pointer}
 .btn-yes{background:var(--know-bg);color:var(--know-text)}.btn-yes:hover{opacity:.85}
 .btn-no{background:var(--skip-bg);color:var(--skip-text)}.btn-no:hover{background:var(--stat-bg)}
 .empty{text-align:center;padding:80px 0;color:var(--light);font-size:.95em}
@@ -74,7 +74,6 @@ input[type=file]{display:none}
 <script src="data.js"></script>
 <script src="index_data.js"></script>
 <script>
-// PWA service worker
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){});}
 </script>
 <script>
@@ -95,9 +94,9 @@ var LV = {
   L3:{label:'高级',a:Math.floor(2*n/3),b:n}
 };
 
-var state = {}, cur = 'L1', timer = null, darkMode = false;
+var state = {}, cur = 'L1', noteTimer = null, darkMode = false;
 var todayKey = new Date().toISOString().slice(0,10);
-var todayLog = {}; // {date: {know: N, skip: N, seen: Set}}
+var todayLog = {};
 
 // ---- localStorage ----
 var LS_KEY = 'cet6_progress';
@@ -108,8 +107,7 @@ function saveLocal(){
     Object.keys(LV).forEach(function(k){
       cpt[k] = {active:state[k].active,stats:state[k].stats,poolSize:state[k].poolSize};
     });
-    cpt._todayLog = todayLog;
-    cpt._darkMode = darkMode;
+    cpt._todayLog = todayLog; cpt._darkMode = darkMode;
     localStorage.setItem(LS_KEY, JSON.stringify(cpt));
   }catch(e){}
 }
@@ -132,7 +130,6 @@ function todayStats(){
   var log = todayLog[todayKey] || {know:0, skip:0};
   return {know:log.know||0, skip:log.skip||0, total:(log.know||0)+(log.skip||0)};
 }
-
 function logToday(action){
   if(!todayLog[todayKey]) todayLog[todayKey] = {know:0, skip:0};
   todayLog[todayKey][action] = (todayLog[todayKey][action]||0) + 1;
@@ -158,10 +155,7 @@ function refill(k){
     else if(st.mastered) review.push(w);
     else struggle.push(w);
   });
-  // Sort struggle by skip count descending (most skipped = most need practice)
-  struggle.sort(function(a,b){
-    return (ls.stats[b.freq_rank]||{}).skipCount - (ls.stats[a.freq_rank]||{}).skipCount;
-  });
+  struggle.sort(function(a,b){return (ls.stats[b.freq_rank]||{}).skipCount - (ls.stats[a.freq_rank]||{}).skipCount;});
   var picked = [];
   unseen.forEach(function(w){if(picked.length<need)picked.push(w);});
   struggle.forEach(function(w){if(picked.length<need)picked.push(w);});
@@ -194,28 +188,17 @@ function master(rank){
 }
 
 function stats(){
-  var t=0,m=0,e=0,sk=0;
+  var t=0,m=0,e=0;
   Object.keys(LV).forEach(function(k){
     var ls=state[k]; t+=ls.poolSize||0;
     Object.keys(ls.stats||{}).forEach(function(rk){
       if(ls.stats[rk].mastered) m++;
       if(ls.stats[rk].exposed) e++;
-      sk += (ls.stats[rk].skipCount||0);
     });
   });
-  return {total:t,mastered:m,exposed:e,unseen:t-e,totalSkips:sk};
+  return {total:t,mastered:m,exposed:e,unseen:t-e};
 }
 
-// ---- Dark mode ----
-function toggleDark(){
-  darkMode = !darkMode;
-  if(darkMode){document.body.classList.add('dark');}
-  else{document.body.classList.remove('dark');}
-  saveLocal();
-  render();
-}
-
-// ---- Weak words ----
 function getWeakWords(limit){
   var all = [];
   Object.keys(LV).forEach(function(k){
@@ -234,6 +217,15 @@ function getWeakWords(limit){
   });
   all.sort(function(a,b){return b.skips - a.skips;});
   return all.slice(0, limit||15);
+}
+
+// ---- Dark mode ----
+function toggleDark(){
+  darkMode = !darkMode;
+  if(darkMode){document.body.classList.add('dark');}
+  else{document.body.classList.remove('dark');}
+  saveLocal();
+  render();
 }
 
 // ---- Backup/Reset ----
@@ -268,10 +260,11 @@ function handleFile(e){
 }
 
 function resetAll(){
-  if(!confirm('确定要重置所有学习进度吗？此操作不可撤销，建议先「备份进度」。')) return;
+  if(!confirm('确定要重置所有学习进度吗？\n\n此操作不可撤销，建议先「备份进度」。')) return;
   localStorage.removeItem(LS_KEY);
   initState(); Object.keys(LV).forEach(function(k){refill(k);});
-  todayLog = {}; saveLocal();
+  todayLog = {}; darkMode = false;
+  document.body.classList.remove('dark'); saveLocal();
   note('进度已重置','ok'); render();
 }
 
@@ -300,11 +293,13 @@ function shuffle(){
 function note(t,c){
   var el = document.getElementById('note'); if(!el) return;
   el.textContent = t; el.className = 'note '+(c||'ok');
-  if(timer) clearTimeout(timer);
-  timer = setTimeout(function(){el.textContent='';el.className='note';},3500);
+  if(noteTimer) clearTimeout(noteTimer);
+  noteTimer = setTimeout(function(){el.textContent='';el.className='note';},3500);
 }
 
-// ---- Stats panel ----
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ---- Stats Panel ----
 function showStatsPanel(){
   var s = stats(), ts = todayStats();
   var weak = getWeakWords(15);
@@ -318,11 +313,12 @@ function showStatsPanel(){
     });
     weakHTML += '</table></div>';
   } else {
-    weakHTML = '<p style="color:var(--light);font-size:.82em">暂无薄弱词汇</p>';
+    weakHTML = '<p style="color:var(--light);font-size:.82em">暂无薄弱词汇（跳过≥2次才会出现）</p>';
   }
 
-  var panelHTML =
-    '<div class="card" style="border-left-color:#5a8a5a">'+
+  var html =
+    '<input type="file" id="fin" accept=".json">'+
+    '<div class="main"><div class="card" style="border-left-color:#5a8a5a">'+
       '<div style="font-size:.9em;margin-bottom:8px;color:var(--muted)">学习统计</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
         '<span>今日已学 <b>'+ts.total+'</b> 句（掌握 '+ts.know+' | 跳过 '+ts.skip+'）</span>'+
@@ -331,16 +327,17 @@ function showStatsPanel(){
         '累计掌握 <b>'+s.mastered+'</b> / '+s.total+' ('+pct+'%) | 未见过 '+s.unseen+' 词'+
       '</div>'+
       '<div style="font-size:.85em;color:var(--muted);margin-bottom:4px">薄弱词汇（跳过≥2次）：</div>'+weakHTML+
-      '<button class="btn btn-yes" style="margin-top:8px" onclick="render()">关闭</button>'+
-    '</div>';
-  document.getElementById('app').innerHTML =
-    '<input type="file" id="fin" accept=".json"><div class="main">'+panelHTML+'</div>';
+      '<button class="btn btn-yes" style="margin-top:10px" id="btn-close-stats">返回练习</button>'+
+    '</div></div>';
+  document.getElementById('app').innerHTML = html;
+  document.getElementById('btn-close-stats').onclick = render;
+  document.getElementById('fin').onchange = handleFile;
+  // fix dark mode
+  if(darkMode) document.body.classList.add('dark');
 }
 
 // ---- Render ----
 function render(){
-  // Expose globally for inline onclick
-  window.render = render;
   var s = stats(), ts = todayStats();
   var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
 
@@ -349,6 +346,7 @@ function render(){
     ' | 累计掌握 '+s.mastered+' 词 ('+pct+'%)';
 
   if(darkMode) document.body.classList.add('dark');
+  else document.body.classList.remove('dark');
 
   var lvHTML = Object.keys(LV).map(function(k){
     return '<button class="lv'+(cur===k?' on':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
@@ -363,6 +361,7 @@ function render(){
   var cardsHTML = '';
   if(cards.length===0){
     refill(cur);
+    if(state[cur].active.length===0){refill(cur);}
     cardsHTML = '<div class="empty">加载中...</div>';
     setTimeout(render,100); return;
   }
@@ -373,8 +372,8 @@ function render(){
     return '<div class="card" id="cd-'+c.freq_rank+'">'+
       '<div class="hdr"><span class="rnk">#'+c.freq_rank+' ['+(i+1)+'/'+cards.length+']</span>'+cntHTML+'</div>'+
       '<div class="en">'+esc(c.sentence_en)+'</div>'+
-      '<button class="tgl" onclick="var z=this.nextElementSibling;z.style.display=z.style.display==\'block\'?\'none\':\'block\'">查看翻译 / 隐藏</button>'+
-      '<div class="zh">'+esc(c.sentence_zh)+'</div>'+
+      '<button class="tgl" id="tgl-'+c.freq_rank+'">查看翻译 / 隐藏</button>'+
+      '<div class="zh" id="zh-'+c.freq_rank+'">'+esc(c.sentence_zh)+'</div>'+
       '<div class="sep"></div>'+
       '<div class="acts">'+
         '<button class="btn btn-yes" data-r="'+c.freq_rank+'">认识</button>'+
@@ -400,8 +399,9 @@ function render(){
     '</div>'+
     '<div class="note" id="note"></div>'+
     '<div class="main">'+cardsHTML+'</div>'+
-    '<div class="foot">快捷键：K 认识 · S 跳过 · T 显示翻译 · R 刷新 · D 深色模式 · B 备份</div>';
+    '<div class="foot">快捷键：K 认识 · S 跳过 · T 翻译 · R 刷新 · D 深色 · B 备份</div>';
 
+  // Bind all events
   document.getElementById('btn-backup').onclick = backup;
   document.getElementById('btn-restore').onclick = restore;
   document.getElementById('btn-random').onclick = shuffle;
@@ -409,9 +409,21 @@ function render(){
   document.getElementById('btn-reset').onclick = resetAll;
   document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('fin').onchange = handleFile;
+
   Object.keys(LV).forEach(function(k){
     document.getElementById('lv-'+k).onclick = function(){cur=k;if(state[cur].active.length===0)refill(cur);render();};
   });
+
+  // Card toggle buttons - bind via JS, not inline
+  cards.forEach(function(c){
+    var tglBtn = document.getElementById('tgl-'+c.freq_rank);
+    var zhDiv = document.getElementById('zh-'+c.freq_rank);
+    if(tglBtn && zhDiv){
+      tglBtn.onclick = function(){zhDiv.style.display = zhDiv.style.display==='block'?'none':'block';};
+    }
+  });
+
+  // Know / Skip buttons
   document.querySelectorAll('.btn-yes').forEach(function(b){
     b.onclick = function(){
       var r = parseInt(this.getAttribute('data-r'));
@@ -436,9 +448,7 @@ function render(){
   });
 }
 
-function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-// Keyboard shortcuts
+// ---- Keyboard shortcuts ----
 document.addEventListener('keydown', function(e){
   if(e.target.tagName==='INPUT') return;
   switch(e.key.toLowerCase()){
