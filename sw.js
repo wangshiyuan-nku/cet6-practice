@@ -1,7 +1,8 @@
-var CACHE = 'cet6-v2';
+var CACHE = 'cet6-v3';
 var BASE = self.location.pathname.replace(/\/[^/]*$/, '');
 
 self.addEventListener('install', function(e) {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE).then(function(c) {
       return c.addAll([
@@ -17,16 +18,28 @@ self.addEventListener('install', function(e) {
   );
 });
 
+// Delete old caches when new service worker activates
+self.addEventListener('activate', function(e) {
+  e.waitUntil(
+    caches.keys().then(function(keys) {
+      return Promise.all(keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); }));
+    }).then(function() { return clients.claim(); })
+  );
+});
+
+// Network-first: always try network, fall back to cache if offline
 self.addEventListener('fetch', function(e) {
+  // Skip non-GET requests
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(function(r) {
-      return r || fetch(e.request).then(function(resp) {
-        if (resp.ok) {
-          var clone = resp.clone();
-          caches.open(CACHE).then(function(c) { c.put(e.request, clone); });
-        }
-        return resp;
-      });
+    fetch(e.request).then(function(resp) {
+      if (resp.ok) {
+        var clone = resp.clone();
+        caches.open(CACHE).then(function(c) { c.put(e.request, clone); });
+      }
+      return resp;
+    }).catch(function() {
+      return caches.match(e.request);
     })
   );
 });
