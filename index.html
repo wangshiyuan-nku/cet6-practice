@@ -49,12 +49,12 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 .card .rnk{font-size:.68em;color:var(--light)}
 .card .cnt{font-size:.65em;color:var(--warn);font-style:italic}
 .card .en{font-size:1.02em;line-height:1.6;margin-bottom:8px}
-.card .sep{height:14px}
+.card .sep{height:18px}
 .card .zh{font-size:.85em;color:var(--muted);line-height:1.5;display:none;
   padding-top:8px;border-top:1px dashed var(--dash);margin-bottom:8px}
 .card .tgl{font-size:.75em;color:var(--light);cursor:pointer;background:none;
   border:none;text-decoration:underline;padding:0;margin-bottom:6px}
-.card .acts{margin-top:14px;display:flex;gap:8px}
+.card .acts{margin-top:16px;display:flex;gap:12px}
 .btn{padding:7px 18px;border:1px solid var(--border);border-radius:4px;font-size:.85em;cursor:pointer}
 .btn-yes{background:var(--know-bg);color:var(--know-text)}.btn-yes:hover{opacity:.85}
 .btn-no{background:var(--skip-bg);color:var(--skip-text)}.btn-no:hover{background:var(--stat-bg)}
@@ -339,6 +339,8 @@ function showStatsPanel(){
 
 // ---- Render ----
 function render(){
+  // Expose globally for inline onclick
+  window.render = render;
   var s = stats(), ts = todayStats();
   var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
 
