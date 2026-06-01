@@ -7,9 +7,12 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler, BaseHTTPRequestHan
 import tempfile, shutil
 
 if getattr(sys, 'frozen', False):
-    BASE_DIR = os.path.dirname(sys.executable)
+    # Bundled data files are extracted to sys._MEIPASS; writable files go next to .exe
+    DATA_DIR = sys._MEIPASS
+    USER_DIR = os.path.dirname(sys.executable)
 else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+    USER_DIR = DATA_DIR
 
 PORT = 19988
 
@@ -24,8 +27,8 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == '/api/load':
             self._serve_progress()
         else:
-            # Serve static files
-            path = os.path.join(BASE_DIR, self.path.lstrip('/'))
+            # Serve static files from DATA_DIR (bundled in .exe or local dir)
+            path = os.path.join(DATA_DIR, self.path.lstrip('/'))
             if os.path.exists(path):
                 self.send_response(200)
                 ct = 'application/javascript' if path.endswith('.js') else 'text/html'
@@ -37,25 +40,21 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_error(404)
 
     def _serve_main(self):
-        # Read index.html
-        html_path = os.path.join(BASE_DIR, 'index.html')
+        html_path = os.path.join(DATA_DIR, 'index.html')
         with open(html_path, 'r', encoding='utf-8') as f:
             html = f.read()
 
-        # Inject progress bridge
-        progress_path = os.path.join(BASE_DIR, 'cet6_progress.json').replace('\\', '\\\\')
+        # Inject progress bridge: progress file lives in USER_DIR (next to .exe)
+        progress_path = os.path.join(USER_DIR, 'cet6_progress.json').replace('\\', '\\\\')
         bridge = f'''
 <script>
 (function(){{
     var PP = '{progress_path}';
-    // After render, try to load saved progress
-    var origParse = JSON.parse;
     setTimeout(function(){{
         fetch('/api/load').then(r=>r.text()).then(t=>{{
             if(t) localStorage.setItem('cet6_progress', t);
         }});
     }}, 500);
-    // Override setItem to save to file
     var _set = Storage.prototype.setItem;
     Storage.prototype.setItem = function(k,v){{
         _set.call(this, k, v);
@@ -72,7 +71,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(html.encode('utf-8'))
 
     def _serve_progress(self):
-        progress_path = os.path.join(BASE_DIR, 'cet6_progress.json')
+        progress_path = os.path.join(USER_DIR, 'cet6_progress.json')
         self.send_response(200)
         self.send_header('Content-Type', 'text/plain')
         self.end_headers()
@@ -86,7 +85,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.startswith('/api/save'):
             length = int(self.headers.get('Content-Length', 0))
             data = self.rfile.read(length).decode('utf-8')
-            progress_path = os.path.join(BASE_DIR, 'cet6_progress.json')
+            progress_path = os.path.join(USER_DIR, 'cet6_progress.json')
             with open(progress_path, 'w', encoding='utf-8') as f:
                 f.write(data)
             self.send_response(200)
