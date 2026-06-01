@@ -294,11 +294,13 @@ function handleFile(e){
       if(d._darkMode !== undefined) darkMode = d._darkMode;
       saveLocal();
       if(state[cur].active.length===0) refill(cur);
-      note('进度已恢复，共 '+stats().mastered+' 词已掌握','ok');
+      var restored = stats().mastered;
       render();
+      note('进度已恢复，共 '+restored+' 词已掌握','ok');
     }catch(ex){note('文件格式错误','err');}
   };
-  r.readAsText(f); e.target.value = '';
+  r.onloadend = function(){ e.target.value = ''; };
+  r.readAsText(f);
 }
 
 function resetAll(){
