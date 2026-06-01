@@ -102,10 +102,15 @@ var w2r = {};
 pool.forEach(function(w){w2r[w.word.toLowerCase()]=w.freq_rank;});
 
 var n = pool.length;
+// Freq-rank based split: lower rank = more common
+// 基础级: #1-2000, the most common words (25% of pool)
+// 进阶级: #2001-4500, CET-6 core vocabulary (31% of pool)
+// 高级: #4501-end, infrequent/advanced/academic words (44% of pool)
 var LV = {
-  L1:{label:'基础级',a:0,b:Math.floor(n/3)},
-  L2:{label:'进阶级',a:Math.floor(n/3),b:Math.floor(2*n/3)},
-  L3:{label:'高级',a:Math.floor(2*n/3),b:n}
+  L1:{label:'基础级（高频 2000 词）',a:0,b:2000},
+  L2:{label:'进阶级（核心 2500 词）',a:2000,b:4500},
+  L3:{label:'高级（进阶 3514 词）',a:4500,b:n}
+};
 };
 
 var state = {}, cur = 'L1', noteTimer = null, darkMode = false;
