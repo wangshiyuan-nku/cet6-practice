@@ -42,17 +42,6 @@ class Handler(BaseHTTPRequestHandler):
         with open(html_path, 'r', encoding='utf-8') as f:
             html = f.read()
 
-        # Replace script src with inline (so no extra requests needed)
-        for fname, varname in [('data.js', 'CET6_DATA'), ('index_data.js', 'CET6_INDEX')]:
-            path = os.path.join(BASE_DIR, fname)
-            if os.path.exists(path):
-                with open(path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                html = html.replace(
-                    f'<script src="{fname}"></script>',
-                    f'<script>{content}</script>'
-                )
-
         # Inject progress bridge
         progress_path = os.path.join(BASE_DIR, 'cet6_progress.json').replace('\\', '\\\\')
         bridge = f'''
