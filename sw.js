@@ -1,4 +1,4 @@
-var CACHE = 'cet6-v3';
+var CACHE = 'cet6-v2.0';
 var BASE = self.location.pathname.replace(/\/[^/]*$/, '');
 
 self.addEventListener('install', function(e) {

@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
-<title>CET-6 词汇句子练习</title>
+<title>CET-6 词汇句子练习 v2.0</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CET-6">
@@ -72,7 +72,7 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
-<div class="top"><h1>CET-6 词汇句子练习</h1><div class="info" id="today-info"></div></div>
+<div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle">v2.0</span></h1><div class="info" id="today-info"></div></div>
 <div id="app"><div style="text-align:center;padding:60px;color:var(--muted)">加载中...</div></div>
 
 <script src="data.js"></script>
@@ -94,6 +94,7 @@ if('serviceWorker' in navigator){
 </script>
 <script>
 (function(){
+var APP_VERSION = '2.0';
 var pool = window.CET6_DATA || [];
 var idx = window.CET6_INDEX || {};
 if(!pool.length){document.getElementById('app').innerHTML='<div class="empty">数据加载失败</div>';return;}
@@ -525,7 +526,7 @@ document.addEventListener('keydown', function(e){
 // ---- Help ----
 function showHelp(){
   var h='<div class="card" style="max-width:600px;margin:20px auto;text-align:left;font-size:.85em;line-height:1.7">'+
-    '<h3 style="margin-bottom:10px">CET-6 词汇句子练习 — 使用说明</h3>'+
+    '<h3 style="margin-bottom:10px">CET-6 词汇句子练习 v2.0 — 使用说明</h3>'+
     '<p><b>目标：</b>通过阅读英语句子自测六级词汇，掌握约 8,000 个词。</p>'+
     '<p><b>等级切换：</b>顶部 4 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）。</p>'+
     '<p><b>操作：</b>读句子 → 点「查看翻译」对照理解 → 看懂了点「认识」标记掌握，不确定点「跳过」稍后再出现。</p>'+
