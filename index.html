@@ -39,6 +39,8 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 .lv{padding:8px 18px;border:2px solid var(--border);background:transparent;color:var(--muted);
   font-size:.85em;cursor:pointer;border-radius:4px}
 .lv:hover,.lv.on{background:var(--border);color:#fff}
+.lv.long{border-color:#c08050;color:#c08050}.lv.long:hover,.lv.long.on{background:#c08050;color:#fff}
+.en-long{font-size:.92em;line-height:1.55}.zh-long{font-size:.8em;line-height:1.45}
 .stats-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:6px 10px;font-size:.76em;color:var(--muted)}
 .stats-bar span{background:var(--stat-bg);padding:3px 10px;border-radius:3px;white-space:nowrap}
 .note{text-align:center;font-size:.74em;min-height:1.1em;margin:2px 0}
@@ -109,7 +111,8 @@ var n = pool.length;
 var LV = {
   L1:{label:'基础级（高频 2000 词）',a:0,b:2000},
   L2:{label:'进阶级（核心 2500 词）',a:2000,b:4500},
-  L3:{label:'高级（进阶 3514 词）',a:4500,b:n}
+  L3:{label:'高级（进阶 3514 词）',a:4500,b:n},
+  L4:{label:'长阅读',a:0,b:n,long:true}
 };
 
 var state = {}, cur = 'L1', noteTimer = null, darkMode = false;
@@ -180,6 +183,8 @@ function initState(){
 
 function refill(k){
   var ls = state[k], lp = pool.slice(LV[k].a, LV[k].b);
+  // L4: only pick words that have a long version
+  if(LV[k].long) lp = lp.filter(function(w){return w.sentence_long;});
   var need = T - ls.active.length;
   if(need <= 0) return;
   var aset = {}; ls.active.forEach(function(r){aset[r]=true;});
@@ -393,7 +398,7 @@ function render(){
   else document.body.classList.remove('dark');
 
   var lvHTML = Object.keys(LV).map(function(k){
-    return '<button class="lv'+(cur===k?' on':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
+    return '<button class="lv'+(cur===k?' on':'')+(LV[k].long?' long':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
   }).join('');
 
   var ls = state[cur];
@@ -413,11 +418,15 @@ function render(){
     var st = ls.stats[c.freq_rank]||{};
     var skipCount = st.skipCount||0;
     var cntHTML = skipCount > 0 ? '<span class="cnt">上次未掌握'+(skipCount>1?' · 共'+skipCount+'次':'')+'</span>' : '';
+    // L4 long mode: use sentence_long if available
+    var en = (LV[cur].long && c.sentence_long) ? c.sentence_long : c.sentence_en;
+    var zh = (LV[cur].long && c.sentence_long) ? (c.zh_long || c.sentence_zh) : c.sentence_zh;
+    var longClass = (LV[cur].long && c.sentence_long) ? ' en-long' : '';
     return '<div class="card" id="cd-'+c.freq_rank+'">'+
       '<div class="hdr"><span class="rnk">#'+c.freq_rank+' ['+(i+1)+'/'+cards.length+']</span>'+cntHTML+'</div>'+
-      '<div class="en">'+esc(c.sentence_en)+'</div>'+
+      '<div class="en'+longClass+'">'+esc(en)+'</div>'+
       '<button class="tgl" id="tgl-'+c.freq_rank+'">查看翻译 / 隐藏</button>'+
-      '<div class="zh" id="zh-'+c.freq_rank+'">'+esc(c.sentence_zh)+'</div>'+
+      '<div class="zh'+longClass+'" id="zh-'+c.freq_rank+'">'+esc(zh)+'</div>'+
       '<div class="sep"></div>'+
       '<div class="acts">'+
         '<button class="btn btn-yes" data-r="'+c.freq_rank+'">认识</button>'+
@@ -444,7 +453,11 @@ function render(){
     '</div>'+
     '<div class="note" id="note"></div>'+
     '<div class="main">'+cardsHTML+'</div>'+
-    '<div class="foot">备份/恢复进度文件实现多设备同步 | K 认识 · S 跳过 · T 翻译 · R 刷新 · D 深色</div>';
+    '<div class="foot">'+
+      '<a href="#" id="btn-help" style="color:var(--light);margin-right:12px">使用说明</a>'+
+      '<a href="https://github.com/wangshiyuan-nku/cet6-practice" target="_blank" style="color:var(--light)">GitHub 仓库</a>'+
+      ' &nbsp;|&nbsp; K 认识 · S 跳过 · T 翻译 · R 刷新 · D 深色'+
+    '</div>';
 
   // Bind all events
   document.getElementById('btn-backup').onclick = backup;
@@ -455,6 +468,8 @@ function render(){
   document.getElementById('btn-reset').onclick = resetAll;
   document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('fin').onchange = handleFile;
+  var helpBtn = document.getElementById('btn-help');
+  if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
   Object.keys(LV).forEach(function(k){
     document.getElementById('lv-'+k).onclick = function(){cur=k;if(state[cur].active.length===0)refill(cur);render();};
@@ -506,6 +521,25 @@ document.addEventListener('keydown', function(e){
     case 'b': backup(); break;
   }
 });
+
+// ---- Help ----
+function showHelp(){
+  var h='<div class="card" style="max-width:600px;margin:20px auto;text-align:left;font-size:.85em;line-height:1.7">'+
+    '<h3 style="margin-bottom:10px">CET-6 词汇句子练习 — 使用说明</h3>'+
+    '<p><b>目标：</b>通过阅读英语句子自测六级词汇，掌握约 8,000 个词。</p>'+
+    '<p><b>等级切换：</b>顶部 4 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）。</p>'+
+    '<p><b>操作：</b>读句子 → 点「查看翻译」对照理解 → 看懂了点「认识」标记掌握，不确定点「跳过」稍后再出现。</p>'+
+    '<p><b>交叉掌握：</b>「认识」一个句子后，句中所有六级词汇都会标记为已掌握，最大化学习效率。</p>'+
+    '<p><b>跳过追踪：</b>每跳过一次会累计，反馈为「上次未掌握」标记和薄弱词汇排行。</p>'+
+    '<p><b>键盘快捷键：</b>K 认识 | S 跳过 | T 翻译 | R 刷新 | D 深色模式</p>'+
+    '<p><b>进度同步：</b>顶部「备份进度」下载 .json 文件 → 保存到 iCloud/OneDrive → 新设备「恢复进度」导入。</p>'+
+    '<p><b>安装 App：</b>手机浏览器打开 → 添加到主屏幕，即可像 App 一样使用。</p>'+
+    '<p style="margin-top:12px;font-size:.8em;color:var(--muted)">GitHub: <a href=\"https://github.com/wangshiyuan-nku/cet6-practice\" target=\"_blank\" style=\"color:var(--muted)\">wangshiyuan-nku/cet6-practice</a></p>'+
+    '<button class="btn btn-yes" style="margin-top:12px" onclick="render()">返回练习</button>'+
+    '</div>';
+  document.getElementById('app').innerHTML='<div class="main">'+h+'</div>';
+  if(darkMode) document.body.classList.add('dark');
+}
 
 // Init
 initState();
