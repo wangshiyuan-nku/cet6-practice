@@ -445,6 +445,7 @@ function render(){
       '<button class="tb" id="btn-random">随机刷新</button>'+
       '<button class="tb" id="btn-dark">'+(darkMode?'浅色模式':'深色模式')+'</button>'+
       '<button class="tb danger" id="btn-reset">重置进度</button>'+
+      '<button class="tb" id="btn-guide" style="color:#4a90c4;border-color:#4a90c4">新手指导</button>'+
     '</div>'+
     '<div class="levels">'+lvHTML+'</div>'+
     '<div class="stats-bar">'+
@@ -468,6 +469,7 @@ function render(){
   document.getElementById('btn-dark').onclick = toggleDark;
   document.getElementById('btn-reset').onclick = resetAll;
   document.getElementById('btn-stats').onclick = showStatsPanel;
+  document.getElementById('btn-guide').onclick = showGuide;
   document.getElementById('fin').onchange = handleFile;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
@@ -523,13 +525,114 @@ document.addEventListener('keydown', function(e){
   }
 });
 
-// ---- Help ----
+// ---- 新手指导 ----
+var GUIDE_PAGES = [
+  // Step 1: Welcome
+  '<div style="text-align:center">'+
+    '<div style="font-size:3em;margin:20px 0">&#x1F4DA;</div>'+
+    '<h3 style="margin-bottom:8px">欢迎使用 CET-6 词汇句子练习</h3>'+
+    '<p style="color:var(--muted);font-size:.85em;line-height:1.7">本工具帮你通过<b>阅读句子</b>来自测六级词汇量。<br>不用背单词书，读句子就能判断是否掌握。</p>'+
+    '<p style="font-size:.82em;color:var(--light);margin-top:10px">约 8,000 个六级词汇 · 4 个难度等级 · 手机电脑都能用</p>'+
+  '</div>',
+
+  // Step 2: How to use
+  '<h4 style="margin-bottom:10px">&#x1F4D6; 怎么学习？</h4>'+
+    '<div style="font-size:.84em;line-height:1.9">'+
+    '<p><b>1.</b> 先<b>读英文句子</b>，尝试脑内翻译</p>'+
+    '<p><b>2.</b> 点<b>「查看翻译」</b>对照中文，检验理解</p>'+
+    '<p><b>3.</b> 看懂了 → 点<b>「认识」</b>，标记为已掌握</p>'+
+    '<p><b>4.</b> 不确定 → 点<b>「跳过」</b>，稍后再出现</p>'+
+    '<p><b>5.</b> 掌握后自动消失，新句子不断补充</p>'+
+  '</div>'+
+  '<p style="font-size:.76em;color:var(--muted);margin-top:8px">快捷键：<b>K</b> 认识 · <b>S</b> 跳过 · <b>T</b> 翻译 · <b>R</b> 刷新 · <b>D</b> 深色</p>',
+
+  // Step 3: Levels
+  '<h4 style="margin-bottom:10px">&#x1F3AF; 四个等级</h4>'+
+    '<div style="font-size:.84em;line-height:1.9">'+
+    '<p><b>基础级</b>（~2,000 词）：高频日常词汇，建议从这开始</p>'+
+    '<p><b>进阶级</b>（~2,500 词）：六级核心词汇，中等难度</p>'+
+    '<p><b>高级</b>（~3,514 词）：低频进阶词汇，冲刺高分</p>'+
+    '<p style="color:#c08050"><b>长阅读</b>（~2,400 词）：完整长句版，深度训练</p>'+
+  '</div>'+
+  '<p style="font-size:.76em;color:var(--muted);margin-top:8px">建议按顺序学习。每个等级 10 条句子，用完自动补新。</p>',
+
+  // Step 4: Smart features
+  '<h4 style="margin-bottom:10px">&#x26A1; 高效学习特性</h4>'+
+    '<div style="font-size:.84em;line-height:1.9">'+
+    '<p><b>交叉掌握：</b>一个句子含多个六级词，认识一句全部标记掌握</p>'+
+    '<p><b>跳过追踪：</b>跳过的词再次出现标注「上次未掌握」和累计次数</p>'+
+    '<p><b>薄弱排行：</b>学习统计中按跳过次数排行，发现真正难点</p>'+
+    '<p><b>自适应：</b>越不熟的词越优先出现，已掌握的极少打扰</p>'+
+  '</div>',
+
+  // Step 5: Sync & Backup
+  '<h4 style="margin-bottom:10px">&#x1F504; 进度同步</h4>'+
+    '<div style="font-size:.84em;line-height:1.9">'+
+    '<p><b>备份：</b>点击「备份进度」下载 .json 文件</p>'+
+    '<p><b>保存：</b>放到 iCloud/OneDrive/Dropbox 云盘文件夹</p>'+
+    '<p><b>恢复：</b>换设备后点「恢复进度」选择备份文件</p>'+
+    '<p><b>兼容：</b>进度文件自动迁移，版本升级不丢数据</p>'+
+  '</div>',
+
+  // Step 6: Install App
+  '<h4 style="margin-bottom:10px">&#x1F4F1; 安装为 App</h4>'+
+    '<div style="font-size:.84em;line-height:1.9">'+
+    '<p><b>iPhone：</b>Safari 打开 → 底部分享 → 添加到主屏幕</p>'+
+    '<p><b>Android：</b>Chrome 打开 → 菜单 → 添加到主屏幕</p>'+
+    '<p><b>电脑：</b>Chrome/Edge 地址栏安装图标 → 安装</p>'+
+  '</div>'+
+  '<p style="font-size:.76em;color:var(--muted);margin-top:8px">安装后像普通 App，独立图标，离线可用。另可下载桌面版 .exe。</p>',
+
+  // Step 7: Ready
+  '<div style="text-align:center">'+
+    '<div style="font-size:3em;margin:20px 0">&#x1F389;</div>'+
+    '<h4 style="margin-bottom:8px">准备就绪！</h4>'+
+    '<p style="color:var(--muted);font-size:.85em;line-height:1.7">建议从<b>基础级</b>开始，每天练习 50-100 句。<br>定期备份进度，多设备间无缝切换。</p>'+
+    '<p style="font-size:.8em;margin-top:10px"><a href="https://github.com/wangshiyuan-nku/cet6-practice" target="_blank" style="color:var(--light)">GitHub 仓库</a> · 页面底部可随时查看</p>'+
+  '</div>'
+];
+
+var G_STEP = 0;
+
+function renderGuide(){
+  var isLast = G_STEP >= GUIDE_PAGES.length - 1;
+  var dotHTML = GUIDE_PAGES.map(function(_,i){
+    return '<div style="width:'+(i===G_STEP?18:7)+'px;height:7px;border-radius:4px;background:'+(i===G_STEP?'var(--border)':'var(--dash)')+'"></div>';
+  }).join('');
+
+  var g = '<div class="card" style="max-width:600px;margin:20px auto;text-align:left">'+
+    '<div style="display:flex;gap:4px;justify-content:center;margin-bottom:16px">'+dotHTML+'</div>'+
+    GUIDE_PAGES[G_STEP]+
+    '<div style="display:flex;justify-content:space-between;margin-top:18px">'+
+      (G_STEP>0 ? '<button class="btn btn-no" id="guide-prev">上一步</button>' : '<span></span>')+
+      (isLast ? '<button class="btn btn-yes" id="guide-start">开始练习</button>' : '<button class="btn btn-yes" id="guide-next">下一步</button>')+
+    '</div>'+
+    (isLast ? '' : '<p style="text-align:center;font-size:.7em;color:var(--light);margin-top:8px">'+(G_STEP+1)+' / '+GUIDE_PAGES.length+'</p>')+
+  '</div>';
+
+  document.getElementById('app').innerHTML = '<div class="main">'+g+'</div>';
+  if(darkMode) document.body.classList.add('dark');
+
+  var pb = document.getElementById('guide-prev');
+  var nb = document.getElementById('guide-next');
+  var sb = document.getElementById('guide-start');
+  if(pb) pb.onclick = function(){ G_STEP--; renderGuide(); };
+  if(nb) nb.onclick = function(){ G_STEP++; renderGuide(); };
+  if(sb) sb.onclick = render;
+}
+
+function showGuide(){
+  G_STEP = 0;
+  renderGuide();
+}
+
+// ---- Help (short version) ----
 function showHelp(){
   var h='<div class="card" style="max-width:600px;margin:20px auto;text-align:left;font-size:.85em;line-height:1.7">'+
     '<h3 style="margin-bottom:10px">CET-6 词汇句子练习 v2.0 — 使用说明</h3>'+
     '<p><b>目标：</b>通过阅读英语句子自测六级词汇，掌握约 8,000 个词。</p>'+
     '<p><b>等级切换：</b>顶部 4 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）。</p>'+
-    '<p><b>操作：</b>读句子 → 点「查看翻译」对照理解 → 看懂了点「认识」标记掌握，不确定点「跳过」稍后再出现。</p>'+
+    '<p><b>操作：</b>读句子 → 点「查看翻译」对照理解 → 看懂了点认识」标记掌握，不确定点「跳过」稍后再出现。</p>'+
     '<p><b>交叉掌握：</b>「认识」一个句子后，句中所有六级词汇都会标记为已掌握，最大化学习效率。</p>'+
     '<p><b>跳过追踪：</b>每跳过一次会累计，反馈为「上次未掌握」标记和薄弱词汇排行。</p>'+
     '<p><b>键盘快捷键：</b>K 认识 | S 跳过 | T 翻译 | R 刷新 | D 深色模式</p>'+
