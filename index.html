@@ -697,6 +697,7 @@ if(!loadLocal()){
   Object.keys(LV).forEach(function(k){refill(k);});
   saveLocal();
 }
+document.getElementById('ver-badge').textContent = 'v' + APP_VERSION;
 if(state[cur].active.length===0) refill(cur);
 if(darkMode) document.body.classList.add('dark');
 render();
