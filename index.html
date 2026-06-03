@@ -69,6 +69,17 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 .btn-no{background:var(--skip-bg);color:var(--skip-text)}.btn-no:hover{background:var(--stat-bg)}
 .btn-warn{background:transparent;color:var(--danger);border-color:var(--danger);font-size:.78em;padding:6px 14px}.btn-warn:hover{background:var(--danger);color:#fff}
 .empty{text-align:center;padding:80px 0;color:var(--light);font-size:.95em}
+.word-popup{display:none;position:fixed;z-index:999;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 14px;box-shadow:0 4px 16px rgba(0,0,0,.15);max-width:260px;font-size:.82em;line-height:1.5}
+.word-popup .wp-word{font-weight:bold;color:var(--text);margin-bottom:2px}
+.word-popup .wp-phonetic{font-size:.8em;color:var(--light);margin-bottom:4px}
+.word-popup .wp-meaning{color:var(--muted);font-size:.78em}
+.word-popup .wp-actions{margin-top:8px;display:flex;gap:6px}
+.word-popup .wp-btn{padding:3px 10px;font-size:.72em;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:transparent;color:var(--muted)}
+.word-popup .wp-btn.add{color:#7b5ea7;border-color:#7b5ea7}.word-popup .wp-btn.add:hover{background:#7b5ea7;color:#fff}
+.word-popup .wp-btn.add.on{background:#7b5ea7;color:#fff}
+.en span.word{cursor:pointer;transition:background .15s}
+.en span.word:hover{background:var(--stat-bg);border-radius:2px}
+.en span.word.in-bank{border-bottom:2px dotted #7b5ea7}
 .foot{text-align:center;padding:10px;color:var(--light);font-size:.68em;position:fixed;bottom:0;width:100%;background:var(--bg)}
 .weak-list{margin:10px 0;font-size:.82em;max-height:200px;overflow-y:auto}
 .weak-list table{width:100%;border-collapse:collapse}
@@ -80,6 +91,15 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 <div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle" id="ver-badge"></span></h1><div class="info" id="today-info"></div></div>
 <div id="app"><div style="text-align:center;padding:60px;color:var(--muted)">加载中...</div></div>
 <input type="file" id="fin" accept=".json" style="display:none">
+<div class="word-popup" id="word-popup">
+  <div class="wp-word" id="wp-word"></div>
+  <div class="wp-phonetic" id="wp-phonetic"></div>
+  <div class="wp-meaning" id="wp-meaning"></div>
+  <div class="wp-actions">
+    <button class="wp-btn add" id="wp-add">加入生词本</button>
+    <button class="wp-btn" id="wp-close">关闭</button>
+  </div>
+</div>
 
 <script>
 var APP_VERSION = '2.4';
@@ -141,6 +161,9 @@ for(var i = listeningGroups.length - 1; i > 0; i--){
 }
 
 var state = {}, cur = 'L1', noteTimer = null, darkMode = false;
+var wordBank = {};
+try{ wordBank = JSON.parse(localStorage.getItem('cet6_wordbank') || '{}'); }catch(e){ wordBank = {}; }
+function saveWordBank(){ localStorage.setItem('cet6_wordbank', JSON.stringify(wordBank)); }
 var todayKey = new Date().toISOString().slice(0,10);
 var todayLog = {};
 
@@ -212,6 +235,7 @@ function initState(){
 
 // Score a sentence: return count of words in it that are already mastered
 // Lower score = more new vocabulary = picked first
+// BUT: word bank words get -100 bonus (very high priority)
 function sentenceKnownScore(w, ls){
   var words = s2w[String(w.freq_rank)] || [];
   var known = 0;
@@ -219,6 +243,12 @@ function sentenceKnownScore(w, ls){
     var r = w2r[words[i].toLowerCase()];
     if(r && ls.stats[r] && ls.stats[r].mastered) known++;
   }
+  // Bonus: if this sentence contains any word-bank word, give negative score (very high priority)
+  var hasBank = false;
+  for(var i = 0; i < words.length; i++){
+    if(wordBank[words[i].toLowerCase()]){ hasBank = true; break; }
+  }
+  if(hasBank) known -= 100;
   return known;
 }
 
@@ -397,6 +427,42 @@ function note(t,c){
 }
 
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function wrapWords(enText){
+  return enText.replace(/([a-zA-ZÀ-ɏ]+(?:['’][a-z]+)?)/g, function(m){
+    var lower = m.toLowerCase().replace(/['’]/g, '\'');
+    var isBank = wordBank[lower] ? ' in-bank' : '';
+    return '<span class="word'+isBank+'" data-word="'+esc(lower)+'">'+esc(m)+'</span>';
+  });
+}
+
+function showWordPopup(word, x, y){
+  var info = rankMap[w2r[word]];
+  if(!info) return;
+  document.getElementById('wp-word').textContent = info.word;
+  document.getElementById('wp-phonetic').textContent = info.phonetic || '';
+  document.getElementById('wp-meaning').textContent = info.meaning || '';
+  var btn = document.getElementById('wp-add');
+  var isBank = wordBank[word];
+  btn.textContent = isBank ? '移出生词本' : '加入生词本';
+  btn.className = 'wp-btn add' + (isBank ? ' on' : '');
+  btn.onclick = function(){
+    if(wordBank[word]){ delete wordBank[word]; } else { wordBank[word] = true; }
+    saveWordBank(); hideWordPopup();
+    render();
+  };
+  var popup = document.getElementById('word-popup');
+  popup.style.display = 'block';
+  // Position near click but within viewport
+  var mx = Math.min(x + 10, window.innerWidth - 280);
+  var my = Math.min(y + 10, window.innerHeight - 180);
+  popup.style.left = mx + 'px';
+  popup.style.top = my + 'px';
+}
+
+function hideWordPopup(){
+  document.getElementById('word-popup').style.display = 'none';
+}
 
 function showStatsPanel(){
   var s = stats(), ts = todayStats();
@@ -592,12 +658,13 @@ function render(){
     var st = ls.stats[c.freq_rank]||{};
     var skipCount = st.skipCount||0;
     var cntHTML = skipCount > 0 ? '<span class="cnt">上次未掌握'+(skipCount>1?' · 共'+skipCount+'次':'')+'</span>' : '';
-    var en = (LV[cur].long && c.sentence_long) ? c.sentence_long : c.sentence_en;
+    var enText = (LV[cur].long && c.sentence_long) ? c.sentence_long : c.sentence_en;
+var enHTML = wrapWords(enText);
     var zh = (LV[cur].long && c.sentence_long) ? (c.zh_long || c.sentence_zh) : c.sentence_zh;
     var longClass = (LV[cur].long && c.sentence_long) ? ' en-long' : '';
     return '<div class="card" id="cd-'+c.freq_rank+'">'+
       '<div class="hdr"><span class="rnk">#'+c.freq_rank+' ['+(i+1)+'/'+cards.length+']</span>'+cntHTML+'</div>'+
-      '<div class="en'+longClass+'">'+esc(en)+'</div>'+
+      '<div class="en'+longClass+'">'+enHTML+'</div>'+
       '<button class="tgl" id="tgl-'+c.freq_rank+'">查看翻译 / 隐藏</button>'+
       '<div class="zh'+longClass+'" id="zh-'+c.freq_rank+'">'+esc(zh)+'</div>'+
       '<div class="sep"></div>'+
@@ -679,7 +746,24 @@ function render(){
       setTimeout(render,200);
     };
   });
-}
+
+  // Word double-click popup bindings
+  document.querySelectorAll('.en .word').forEach(function(el){
+    el.ondblclick = function(e){
+      e.preventDefault();
+      showWordPopup(this.getAttribute('data-word'), e.clientX, e.clientY);
+    };
+  });
+} // end render
+
+// Global click listener to hide word popup
+document.addEventListener('click', function(e){
+  var popup = document.getElementById('word-popup');
+  if(!popup || popup.style.display === 'none') return;
+  if(!popup.contains(e.target) && !e.target.classList.contains('word')){
+    hideWordPopup();
+  }
+});
 
 // ---- Keyboard shortcuts ----
 document.addEventListener('keydown', function(e){
