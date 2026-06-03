@@ -4,6 +4,7 @@ CET-6 词汇练习 - 桌面版
 """
 import os, sys, json, threading, webbrowser, subprocess
 from http.server import HTTPServer, SimpleHTTPRequestHandler, BaseHTTPRequestHandler
+from urllib.parse import urlparse
 import tempfile, shutil
 
 if getattr(sys, 'frozen', False):
@@ -28,7 +29,8 @@ class Handler(BaseHTTPRequestHandler):
             self._serve_progress()
         else:
             # Serve static files from DATA_DIR (bundled in .exe or local dir)
-            path = os.path.join(DATA_DIR, self.path.lstrip('/'))
+            parsed = urlparse(self.path)
+            path = os.path.join(DATA_DIR, parsed.path.lstrip('/'))
             if os.path.exists(path):
                 self.send_response(200)
                 ct = self._mime(path)
