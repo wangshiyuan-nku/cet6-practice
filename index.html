@@ -80,33 +80,14 @@ input[type=file]{display:none}
 <script src="data.js"></script>
 <script src="index_data.js"></script>
 <script>
-if('serviceWorker' in navigator){
-  var swReg = null;
-  navigator.serviceWorker.register('sw.js').then(function(reg){
-    swReg = reg;
-    // Check for updates every 30s
-    setInterval(function(){ reg.update(); }, 30000);
-    reg.addEventListener('updatefound', function(){
-      var nw = reg.installing;
-      if(!nw) return;
-      nw.addEventListener('statechange', function(){
-        if(nw.state === 'installed' && navigator.serviceWorker.controller){
-          // New version ready — show update banner
-          var bar = document.getElementById('update-bar');
-          if(bar) bar.style.display = 'block';
-        }
-      });
+// Unregister any stale Service Workers from earlier versions
+if('serviceWorker' in navigator && navigator.serviceWorker.controller){
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){ r.unregister(); });
+    caches.keys().then(function(keys){
+      keys.forEach(function(k){ caches.delete(k); });
     });
-  }).catch(function(){});
-  // If there's already a waiting SW, show banner immediately
-  if(navigator.serviceWorker.controller){
-    navigator.serviceWorker.ready.then(function(reg){
-      if(reg.waiting){
-        var bar = document.getElementById('update-bar');
-        if(bar) bar.style.display = 'block';
-      }
-    });
-  }
+  });
 }
 </script>
 <script>
@@ -291,22 +272,12 @@ function toggleDark(){
   render();
 }
 
-// ---- Force Update ----
+// ---- Force Update (clear cache & reload) ----
 function forceUpdate(){
-  note('正在更新...', 'ok');
-  if('serviceWorker' in navigator && navigator.serviceWorker.controller){
-    // 1. Unregister all SW to completely remove old cached behavior
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      return Promise.all(regs.map(function(r){ return r.unregister(); }));
-    }).then(function(){
-      // 2. Delete all caches
-      return caches.keys().then(function(keys){
-        return Promise.all(keys.map(function(k){ return caches.delete(k); }));
-      });
-    }).then(function(){
-      // 3. Reload without any SW
-      location.reload(true);
-    });
+  if('caches' in window){
+    caches.keys().then(function(keys){
+      return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+    }).finally(function(){ location.reload(true); });
   } else {
     location.reload(true);
   }
