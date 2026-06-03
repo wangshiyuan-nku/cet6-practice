@@ -31,7 +31,7 @@ class Handler(BaseHTTPRequestHandler):
             path = os.path.join(DATA_DIR, self.path.lstrip('/'))
             if os.path.exists(path):
                 self.send_response(200)
-                ct = 'application/javascript' if path.endswith('.js') else 'text/html'
+                ct = self._mime(path)
                 self.send_header('Content-Type', ct)
                 self.end_headers()
                 with open(path, 'rb') as f:
@@ -96,6 +96,19 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+    @staticmethod
+    def _mime(path):
+        ext = os.path.splitext(path)[1].lower()
+        return {
+            '.html': 'text/html; charset=utf-8',
+            '.js': 'application/javascript',
+            '.json': 'application/json',
+            '.css': 'text/css',
+            '.png': 'image/png',
+            '.svg': 'image/svg+xml',
+            '.ico': 'image/x-icon',
+        }.get(ext, 'application/octet-stream')
 
 
 def find_chrome():

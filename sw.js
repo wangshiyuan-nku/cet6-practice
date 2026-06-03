@@ -1,4 +1,4 @@
-var CACHE = 'cet6-v2.1';
+var CACHE = 'cet6-v2.3';
 var BASE = self.location.pathname.replace(/\/[^/]*$/, '');
 
 self.addEventListener('install', function(e) {
@@ -27,10 +27,11 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// Network-first: always try network, fall back to cache if offline
+// Network-first: only cache same-origin app assets
 self.addEventListener('fetch', function(e) {
-  // Skip non-GET requests
   if (e.request.method !== 'GET') return;
+  var url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request).then(function(resp) {
       if (resp.ok) {
