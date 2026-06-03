@@ -210,6 +210,18 @@ function initState(){
   });
 }
 
+// Score a sentence: return count of words in it that are already mastered
+// Lower score = more new vocabulary = picked first
+function sentenceKnownScore(w, ls){
+  var words = s2w[String(w.freq_rank)] || [];
+  var known = 0;
+  for(var i = 0; i < words.length; i++){
+    var r = w2r[words[i].toLowerCase()];
+    if(r && ls.stats[r] && ls.stats[r].mastered) known++;
+  }
+  return known;
+}
+
 function refill(k){
   var ls = state[k], lp = pool.slice(LV[k].a, LV[k].b);
   if(LV[k].long) lp = lp.filter(function(w){return w.sentence_long;});
@@ -224,9 +236,13 @@ function refill(k){
     else if(st.mastered) review.push(w);
     else struggle.push(w);
   });
+  // Sort unseen: sentences with fewest known words first (max new vocab per card)
+  unseen.sort(function(a,b){ return sentenceKnownScore(a,ls) - sentenceKnownScore(b,ls); });
   struggle.sort(function(a,b){return (ls.stats[b.freq_rank]||{}).skipCount - (ls.stats[a.freq_rank]||{}).skipCount;});
   var picked = [];
   unseen.forEach(function(w){if(picked.length<need)picked.push(w);});
+  // Among struggle, also prioritize less-known sentences
+  struggle.sort(function(a,b){ return sentenceKnownScore(a,ls) - sentenceKnownScore(b,ls); });
   struggle.forEach(function(w){if(picked.length<need)picked.push(w);});
   if(picked.length<need && review.length) picked.push(review[0]);
   lp.forEach(function(w){
