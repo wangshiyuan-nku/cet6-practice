@@ -27,6 +27,11 @@ self.addEventListener('activate', function(e) {
   );
 });
 
+// Allow page to tell waiting SW to skip and activate
+self.addEventListener('message', function(e) {
+  if (e.data === 'skipWaiting') self.skipWaiting();
+});
+
 // Network-first: only cache same-origin app assets
 self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;

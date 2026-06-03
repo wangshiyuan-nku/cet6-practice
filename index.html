@@ -73,30 +73,45 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
-<div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle">v2.2</span></h1><div class="info" id="today-info"></div></div>
+<div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle">v2.3</span></h1><div class="info" id="today-info"></div></div>
+<div id="update-bar" style="display:none;background:#c08050;color:#fff;text-align:center;padding:6px;font-size:.8em;cursor:pointer" onclick="location.reload()">新版本已就绪，点击此处刷新应用</div>
 <div id="app"><div style="text-align:center;padding:60px;color:var(--muted)">加载中...</div></div>
 
 <script src="data.js"></script>
 <script src="index_data.js"></script>
 <script>
 if('serviceWorker' in navigator){
+  var swReg = null;
   navigator.serviceWorker.register('sw.js').then(function(reg){
-    reg.update();
+    swReg = reg;
+    // Check for updates every 30s
+    setInterval(function(){ reg.update(); }, 30000);
     reg.addEventListener('updatefound', function(){
       var nw = reg.installing;
       if(!nw) return;
       nw.addEventListener('statechange', function(){
         if(nw.state === 'installed' && navigator.serviceWorker.controller){
-          window.location.reload();
+          // New version ready — show update banner
+          var bar = document.getElementById('update-bar');
+          if(bar) bar.style.display = 'block';
         }
       });
     });
   }).catch(function(){});
+  // If there's already a waiting SW, show banner immediately
+  if(navigator.serviceWorker.controller){
+    navigator.serviceWorker.ready.then(function(reg){
+      if(reg.waiting){
+        var bar = document.getElementById('update-bar');
+        if(bar) bar.style.display = 'block';
+      }
+    });
+  }
 }
 </script>
 <script>
 (function(){
-var APP_VERSION = '2.0';
+var APP_VERSION = '2.3';
 var pool = window.CET6_DATA || [];
 var idx = window.CET6_INDEX || {};
 if(!pool.length){document.getElementById('app').innerHTML='<div class="empty">数据加载失败</div>';return;}
@@ -274,6 +289,22 @@ function toggleDark(){
   else{document.body.classList.remove('dark');}
   saveLocal();
   render();
+}
+
+// ---- Force Update ----
+function forceUpdate(){
+  if('serviceWorker' in navigator){
+    caches.keys().then(function(keys){
+      return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+    }).then(function(){
+      if(swReg && swReg.waiting){
+        swReg.waiting.postMessage('skipWaiting');
+      }
+      location.reload();
+    });
+  } else {
+    location.reload();
+  }
 }
 
 // ---- Backup / Restore ----
@@ -454,6 +485,7 @@ function render(){
       '<button class="tb" id="btn-dark">'+(darkMode?'浅色模式':'深色模式')+'</button>'+
       '<button class="tb danger" id="btn-reset">重置进度</button>'+
       '<button class="tb" id="btn-guide" style="color:#4a90c4;border-color:#4a90c4">新手指导</button>'+
+      '<button class="tb" id="btn-update" style="color:#c44;border-color:#c44;font-size:.7em" title="清除缓存并强制更新到最新版本">强制更新</button>'+
     '</div>'+
     '<div class="levels">'+lvHTML+'</div>'+
     '<div class="stats-bar">'+
@@ -478,6 +510,7 @@ function render(){
   document.getElementById('btn-reset').onclick = resetAll;
   document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('btn-guide').onclick = showGuide;
+  document.getElementById('btn-update').onclick = forceUpdate;
   document.getElementById('fin').onchange = handleFile;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
