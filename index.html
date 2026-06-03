@@ -429,11 +429,55 @@ function note(t,c){
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function wrapWords(enText){
-  return enText.replace(/([a-zA-ZÀ-ɏ]+(?:['’][a-z]+)?)/g, function(m){
+  return enText.replace(/[a-zA-ZÀ-ɏ]+(?:['’][a-z]+)*/g, function(m){
     var lower = m.toLowerCase().replace(/['’]/g, '\'');
     var isBank = wordBank[lower] ? ' in-bank' : '';
     return '<span class="word'+isBank+'" data-word="'+esc(lower)+'">'+esc(m)+'</span>';
   });
+}
+
+// ---- Report sentence issues ----
+var reportedSentences = {};
+try{ reportedSentences = JSON.parse(localStorage.getItem('cet6_reported') || '{}'); }catch(e){ reportedSentences = {}; }
+function saveReports(){ localStorage.setItem('cet6_reported', JSON.stringify(reportedSentences)); }
+
+function reportSentence(rank, issue){
+  if(!reportedSentences[rank]) reportedSentences[rank] = [];
+  reportedSentences[rank].push({issue: issue, time: new Date().toISOString()});
+  saveReports();
+  note('已标记句子 #'+rank+' 的问题','ok');
+}
+
+function renderReportPanel(){
+  var html = '<div class="main"><div class="card" style="border-left-color:#c44">'+
+    '<div style="font-size:.9em;margin-bottom:8px;color:var(--muted)">句子问题标记 · 共 '+Object.keys(reportedSentences).length+' 条</div>';
+  var keys = Object.keys(reportedSentences).sort(function(a,b){ return parseInt(a)-parseInt(b); });
+  if(keys.length === 0){
+    html += '<p style="color:var(--light);font-size:.82em">暂无标记的问题句子</p>';
+  } else {
+    html += '<div style="max-height:400px;overflow-y:auto;font-size:.78em;line-height:1.6">';
+    keys.forEach(function(rk){
+      var w = rankMap[parseInt(rk)];
+      var reports = reportedSentences[rk];
+      html += '<div style="padding:6px 0;border-bottom:1px solid var(--dash)">'+
+        '<b>#'+rk+'</b> '+(w ? esc(w.word)+' — '+esc(w.sentence_en.slice(0,60))+'...' : '(数据已移除)')+
+        '<br><span style="color:var(--muted)">标记'+reports.length+'次：'+
+        reports.map(function(r){ return esc(r.issue) || '未指定'; }).join(' / ')+
+        '</span>'+
+        '<br><button class="wp-btn" style="margin-top:2px;color:var(--danger);border-color:var(--danger)" onclick="delete reportedSentences['+rk+']; saveReports(); renderReportPanel();">清除此条</button>'+
+        '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<div style="margin-top:12px">'+
+    '<button class="btn btn-yes" id="btn-close-report">返回练习</button>'+
+    '<button class="btn btn-warn" style="margin-left:8px" id="btn-clear-reports" onclick="if(confirm(\'确定清除全部 '+keys.length+' 条标记？\')){reportedSentences={};saveReports();renderReportPanel();}">清除全部</button>'+
+    '<button class="tb" style="margin-left:8px;font-size:.7em" id="btn-export-reports" onclick="var b=new Blob([JSON.stringify(reportedSentences,null,2)],{type:\'application/json\'});var a=document.createElement(\'a\');a.href=URL.createObjectURL(b);a.download=\'cet6_reported.json\';a.click();URL.revokeObjectURL(a.href);">导出报告</button>'+
+    '</div>'+
+    '</div></div>';
+  document.getElementById('app').innerHTML = html;
+  document.getElementById('btn-close-report').onclick = render;
+  if(darkMode) document.body.classList.add('dark');
 }
 
 function showWordPopup(word, x, y){
@@ -527,7 +571,7 @@ function renderListening(){
   seen.push(gi); saveSeenGroups(seen);
 
   var enHTML = group.sentences.map(function(s){
-    return '<div class="listen-en">' + esc(s.en) + '</div>';
+    return '<div class="listen-en">' + wrapWords(s.en) + '</div>';
   }).join('');
   var zhHTML = group.sentences.map(function(s){
     return '<div class="listen-zh">' + esc(s.zh) + '</div>';
@@ -578,6 +622,7 @@ function renderListening(){
   document.getElementById('btn-restore').onclick = restore;
   document.getElementById('btn-dark').onclick = toggleDark;
   document.getElementById('btn-refresh-cache').onclick = refreshCache;
+  document.getElementById('btn-reports').onclick = renderReportPanel;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
@@ -671,6 +716,7 @@ var enHTML = wrapWords(enText);
       '<div class="acts">'+
         '<button class="btn btn-yes" data-r="'+c.freq_rank+'">认识</button>'+
         '<button class="btn btn-no" data-r="'+c.freq_rank+'">跳过</button>'+
+        '<button class="btn-warn" data-r="'+c.freq_rank+'" style="margin-left:auto" title="翻译错误/拼写问题等">标记问题</button>'+
       '</div></div>';
   }).join('');
 
@@ -685,6 +731,7 @@ var enHTML = wrapWords(enText);
       '<button class="tb danger" id="btn-reset">重置进度</button>'+
       '<button class="tb" id="btn-guide" style="color:#4a90c4;border-color:#4a90c4">新手指导</button>'+
       '<button class="tb" id="btn-refresh-cache" style="color:#c08050;border-color:#c08050;font-size:.7em" title="清除缓存并重新加载最新版本">刷新缓存</button>'+
+      '<button class="tb" id="btn-reports" style="color:var(--danger);border-color:var(--danger)" title="查看已标记的问题句子">问题标记'+(Object.keys(reportedSentences).length?' ('+Object.keys(reportedSentences).length+')':'')+'</button>'+
     '</div>'+
     '<div class="levels">'+lvHTML+'</div>'+
     '<div class="stats-bar">'+
@@ -709,6 +756,7 @@ var enHTML = wrapWords(enText);
   document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('btn-guide').onclick = showGuide;
   document.getElementById('btn-refresh-cache').onclick = refreshCache;
+  document.getElementById('btn-reports').onclick = renderReportPanel;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
@@ -748,10 +796,21 @@ var enHTML = wrapWords(enText);
   });
 
   // Word double-click popup bindings
-  document.querySelectorAll('.en .word').forEach(function(el){
+  var wordEls = document.querySelectorAll('.en .word, .listen-en .word');
+  wordEls.forEach(function(el){
     el.ondblclick = function(e){
       e.preventDefault();
       showWordPopup(this.getAttribute('data-word'), e.clientX, e.clientY);
+    };
+  });
+
+  // Report button handler (only for buttons with data-r)
+  document.querySelectorAll('.btn-warn[data-r]').forEach(function(b){
+    b.onclick = function(){
+      var r = parseInt(this.getAttribute('data-r'));
+      if(!r) return;
+      var issue = prompt('请描述句子 #'+r+' 的问题：\n(翻译错误/英文拼写/语法问题/其他)');
+      if(issue) reportSentence(r, issue);
     };
   });
 } // end render
