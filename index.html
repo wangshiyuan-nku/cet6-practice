@@ -791,9 +791,10 @@ function showHelp(){
     '<p><b>进度同步：</b>顶部「备份进度」下载 .json 文件 → 保存到 iCloud/OneDrive → 新设备「恢复进度」导入。</p>'+
     '<p><b>安装 App：</b>手机浏览器打开 → 添加到主屏幕，即可像 App 一样使用。</p>'+
     '<p style="margin-top:12px;font-size:.8em;color:var(--muted)">GitHub: <a href=\"https://github.com/wangshiyuan-nku/cet6-practice\" target=\"_blank\" style=\"color:var(--muted)\">wangshiyuan-nku/cet6-practice</a></p>'+
-    '<button class="btn btn-yes" style="margin-top:12px" onclick="render()">返回练习</button>'+
+    '<button class="btn btn-yes" style="margin-top:12px" id="btn-help-close">返回练习</button>'+
     '</div>';
   document.getElementById('app').innerHTML='<div class="main">'+h+'</div>';
+  document.getElementById('btn-help-close').onclick = render;
   if(darkMode) document.body.classList.add('dark');
 }
 
