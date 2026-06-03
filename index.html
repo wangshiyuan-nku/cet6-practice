@@ -73,7 +73,7 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
-<div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle">v2.3</span></h1><div class="info" id="today-info"></div></div>
+<div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle" id="ver-badge"></span></h1><div class="info" id="today-info"></div></div>
 <div id="update-bar" style="display:none;background:#c08050;color:#fff;text-align:center;padding:6px;font-size:.8em;cursor:pointer" onclick="location.reload()">新版本已就绪，点击此处刷新应用</div>
 <div id="app"><div style="text-align:center;padding:60px;color:var(--muted)">加载中...</div></div>
 
@@ -293,17 +293,22 @@ function toggleDark(){
 
 // ---- Force Update ----
 function forceUpdate(){
-  if('serviceWorker' in navigator){
-    caches.keys().then(function(keys){
-      return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+  note('正在更新...', 'ok');
+  if('serviceWorker' in navigator && navigator.serviceWorker.controller){
+    // 1. Unregister all SW to completely remove old cached behavior
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      return Promise.all(regs.map(function(r){ return r.unregister(); }));
     }).then(function(){
-      if(swReg && swReg.waiting){
-        swReg.waiting.postMessage('skipWaiting');
-      }
-      location.reload();
+      // 2. Delete all caches
+      return caches.keys().then(function(keys){
+        return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+      });
+    }).then(function(){
+      // 3. Reload without any SW
+      location.reload(true);
     });
   } else {
-    location.reload();
+    location.reload(true);
   }
 }
 
