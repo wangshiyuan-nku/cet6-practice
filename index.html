@@ -70,7 +70,6 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 .btn-warn{background:transparent;color:var(--danger);border-color:var(--danger);font-size:.78em;padding:6px 14px}.btn-warn:hover{background:var(--danger);color:#fff}
 .empty{text-align:center;padding:80px 0;color:var(--light);font-size:.95em}
 .foot{text-align:center;padding:10px;color:var(--light);font-size:.68em;position:fixed;bottom:0;width:100%;background:var(--bg)}
-input[type=file]{display:none}
 .weak-list{margin:10px 0;font-size:.82em;max-height:200px;overflow-y:auto}
 .weak-list table{width:100%;border-collapse:collapse}
 .weak-list td{padding:4px 8px;border-bottom:1px solid var(--dash)}
@@ -80,6 +79,7 @@ input[type=file]{display:none}
 <body>
 <div class="top"><h1>CET-6 词汇句子练习 <span style="font-size:.5em;opacity:.6;vertical-align:middle" id="ver-badge"></span></h1><div class="info" id="today-info"></div></div>
 <div id="app"><div style="text-align:center;padding:60px;color:var(--muted)">加载中...</div></div>
+<input type="file" id="fin" accept=".json" style="display:none">
 
 <script>
 var APP_VERSION = '2.4';
@@ -399,7 +399,6 @@ function showStatsPanel(){
   }
 
   var html =
-    '<input type="file" id="fin" accept=".json">'+
     '<div class="main"><div class="card" style="border-left-color:#5a8a5a">'+
       '<div style="font-size:.9em;margin-bottom:8px;color:var(--muted)">学习统计</div>'+
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">'+
@@ -413,7 +412,6 @@ function showStatsPanel(){
     '</div></div>';
   document.getElementById('app').innerHTML = html;
   document.getElementById('btn-close-stats').onclick = render;
-  document.getElementById('fin').onchange = handleFile;
   if(darkMode) document.body.classList.add('dark');
 }
 
@@ -460,7 +458,6 @@ function renderListening(){
   }).join('');
 
   document.getElementById('app').innerHTML =
-    '<input type="file" id="fin" accept=".json">'+
     '<div class="tools">'+
       '<button class="tb" id="btn-stats">学习统计</button>'+
       '<button class="tb" id="btn-backup">备份进度</button>'+
@@ -499,7 +496,6 @@ function renderListening(){
   document.getElementById('btn-restore').onclick = restore;
   document.getElementById('btn-dark').onclick = toggleDark;
   document.getElementById('btn-refresh-cache').onclick = refreshCache;
-  document.getElementById('fin').onchange = handleFile;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
@@ -596,7 +592,6 @@ function render(){
   }).join('');
 
   document.getElementById('app').innerHTML =
-    '<input type="file" id="fin" accept=".json">'+
     '<div class="tools">'+
       '<button class="tb" id="btn-stats">学习统计</button>'+
       '<button class="tb" id="btn-backup">备份进度</button>'+
@@ -631,7 +626,6 @@ function render(){
   document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('btn-guide').onclick = showGuide;
   document.getElementById('btn-refresh-cache').onclick = refreshCache;
-  document.getElementById('fin').onchange = handleFile;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
@@ -805,6 +799,7 @@ if(!loadLocal()){
   saveLocal();
 }
 document.getElementById('ver-badge').textContent = 'v' + APP_VERSION;
+document.getElementById('fin').onchange = handleFile;
 if(state[cur].active.length===0) refill(cur);
 if(darkMode) document.body.classList.add('dark');
 render();
