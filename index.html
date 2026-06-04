@@ -987,7 +987,7 @@ var GUIDE_PAGES = [
     '<div style="font-size:3em;margin:20px 0">&#x1F4DA;</div>'+
     '<h3 style="margin-bottom:8px">欢迎使用 CET-6 词汇句子练习</h3>'+
     '<p style="color:var(--muted);font-size:.85em;line-height:1.7">本工具帮你通过<b>阅读句子</b>来自测六级词汇量。<br>不用背单词书，读句子就能判断是否掌握。</p>'+
-    '<p style="font-size:.82em;color:var(--light);margin-top:10px">约 8,000 个六级词汇 · 4 个难度等级 · 手机电脑都能用</p>'+
+    '<p style="font-size:.82em;color:var(--light);margin-top:10px">约 8,000 个六级词汇 · 5 个难度等级 · 手机电脑都能用</p>'+
   '</div>',
 
   '<h4 style="margin-bottom:10px">&#x1F4D6; 怎么学习？</h4>'+
@@ -1000,12 +1000,13 @@ var GUIDE_PAGES = [
   '</div>'+
   '<p style="font-size:.76em;color:var(--muted);margin-top:8px">快捷键：<b>K</b> 认识 · <b>S</b> 跳过 · <b>T</b> 翻译 · <b>R</b> 刷新 · <b>D</b> 深色</p>',
 
-  '<h4 style="margin-bottom:10px">&#x1F3AF; 四个等级</h4>'+
+  '<h4 style="margin-bottom:10px">&#x1F3AF; 五个等级</h4>'+
     '<div style="font-size:.84em;line-height:1.9">'+
     '<p><b>基础级</b>（~2,000 词）：高频日常词汇，建议从这开始</p>'+
     '<p><b>进阶级</b>（~2,500 词）：六级核心词汇，中等难度</p>'+
     '<p><b>高级</b>（~3,514 词）：低频进阶词汇，冲刺高分</p>'+
     '<p style="color:#c08050"><b>长阅读</b>（~2,400 词）：完整长句版，深度训练</p>'+
+    '<p style="color:#7b5ea7"><b>听力训练</b>（100 组）：4 句一组同主题，模拟六级听力</p>'+
   '</div>'+
   '<p style="font-size:.76em;color:var(--muted);margin-top:8px">建议按顺序学习。每个等级 10 条句子，用完自动补新。</p>',
 
@@ -1019,9 +1020,11 @@ var GUIDE_PAGES = [
 
   '<h4 style="margin-bottom:10px">&#x1F504; 进度同步</h4>'+
     '<div style="font-size:.84em;line-height:1.9">'+
-    '<p><b>备份：</b>点击「备份进度」下载 .json 文件</p>'+
-    '<p><b>保存：</b>放到 iCloud/OneDrive/Dropbox 云盘文件夹</p>'+
-    '<p><b>恢复：</b>换设备后点「恢复进度」选择备份文件</p>'+
+    '<p><b>备份：</b>点击「备份进度」下载 cet6_backup_日期.json 文件</p>'+
+    '<p><b>保存：</b>将文件放到 iCloud/OneDrive/Dropbox 云盘文件夹，自动在多设备间同步</p>'+
+    '<p><b>恢复：</b>换设备或重装后，点「恢复进度」选择备份文件即可</p>'+
+    '<p><b>.exe 桌面版：</b>将 .json 备份文件改名为 cet6_progress.json，放到 .exe 同级目录，启动时自动加载</p>'+
+    '<p><b>热更新：</b>.exe 启动优先读同级目录文件，放新版 index.html/data.js 即可更新，无需重装</p>'+
     '<p><b>兼容：</b>进度文件自动迁移，版本升级不丢数据</p>'+
   '</div>',
 
@@ -1079,12 +1082,12 @@ function showHelp(){
   var h='<div class="card" style="max-width:600px;margin:20px auto;text-align:left;font-size:.85em;line-height:1.7">'+
     '<h3 style="margin-bottom:10px">CET-6 词汇句子练习 v' + APP_VERSION + ' — 使用说明</h3>'+
     '<p><b>目标：</b>通过阅读英语句子自测六级词汇，掌握约 8,000 个词。</p>'+
-    '<p><b>等级切换：</b>顶部 4 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）。</p>'+
+    '<p><b>等级切换：</b>顶部 5 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）、<span style="color:#7b5ea7">听力训练</span>（100 组主题听力）。</p>'+
     '<p><b>操作：</b>读句子 → 点「查看翻译」对照理解 → 看懂了点认识」标记掌握，不确定点「跳过」稍后再出现。</p>'+
     '<p><b>交叉掌握：</b>「认识」一个句子后，句中所有六级词汇都会标记为已掌握，最大化学习效率。</p>'+
     '<p><b>跳过追踪：</b>每跳过一次会累计，反馈为「上次未掌握」标记和薄弱词汇排行。</p>'+
     '<p><b>键盘快捷键：</b>K 认识 | S 跳过 | T 翻译 | R 刷新 | D 深色模式</p>'+
-    '<p><b>进度同步：</b>顶部「备份进度」下载 .json 文件 → 保存到 iCloud/OneDrive → 新设备「恢复进度」导入。</p>'+
+    '<p><b>进度同步：</b>「备份进度」下载 .json → 保存到 iCloud/OneDrive/Dropbox → 新设备「恢复进度」导入。.exe 桌面版将备份文件改名为 cet6_progress.json 放到 .exe 同级目录即可。</p>'+
     '<p><b>安装 App：</b>手机浏览器打开 → 添加到主屏幕，即可像 App 一样使用。</p>'+
     '<p style="margin-top:12px;font-size:.8em;color:var(--muted)">GitHub: <a href=\"https://github.com/wangshiyuan-nku/cet6-practice\" target=\"_blank\" style=\"color:var(--muted)\">wangshiyuan-nku/cet6-practice</a></p>'+
     '<button class="btn btn-yes" style="margin-top:12px" id="btn-help-close">返回练习</button>'+
