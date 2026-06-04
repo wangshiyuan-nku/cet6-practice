@@ -103,34 +103,66 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 
 <script>
 var APP_VERSION = '2.4';
-var LOADED = {data: false, index: false};
+var LOADED = {data: false, index: false, listen: false};
+var SCRIPT_TIMEOUT = 30000;
 
 function loadScript(src, name) {
   return new Promise(function(resolve, reject) {
+    var old = document.querySelector('script[data-name="'+name+'"]');
+    if(old) old.parentNode.removeChild(old);
+
     var s = document.createElement('script');
-    s.src = src + '?v=' + encodeURIComponent(APP_VERSION);
-    s.onload = function() { LOADED[name] = true; resolve(); };
-    s.onerror = function() { reject(); };
+    s.setAttribute('data-name', name);
+    s.src = src + '?v=' + encodeURIComponent(APP_VERSION) + '&_=' + Date.now();
+    var settled = false;
+
+    var timer = setTimeout(function(){
+      if(!settled){ settled=true; reject(new Error('timeout')); }
+    }, SCRIPT_TIMEOUT);
+
+    s.onload = function(){
+      if(settled) return;
+      settled = true; clearTimeout(timer);
+      LOADED[name] = true; resolve();
+    };
+    s.onerror = function(e){
+      if(settled) return;
+      settled = true; clearTimeout(timer);
+      reject(new Error('network'));
+    };
     document.head.appendChild(s);
   });
 }
 
-function showRetry(msg) {
+function showRetry(msg, showRefresh) {
   document.getElementById('app').innerHTML =
     '<div class="empty"><p>' + msg + '</p>' +
     '<button class="btn btn-yes" style="margin-top:16px" onclick="initApp()">重新加载</button>' +
-    '<p style="font-size:.7em;color:var(--light);margin-top:8px">多次失败请检查网络后刷新页面</p></div>';
+    (showRefresh ? '<p style="font-size:.7em;color:var(--light);margin-top:8px;cursor:pointer;text-decoration:underline" onclick="location.reload(true)">点此强制刷新（清除缓存）</p>' : '') +
+    '<p style="font-size:.7em;color:var(--light);margin-top:8px">多次失败请检查网络，尝试清除浏览器缓存</p></div>';
 }
 
 function initApp() {
   document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">正在加载数据...</div>';
-  Promise.all([
-    loadScript('data.js', 'data'),
-    loadScript('index_data.js', 'index'),
-    loadScript('listening_data.js', 'listen')
-  ]).then(function() { bootApp(); }).catch(function() {
-    showRetry('数据加载失败，请检查网络连接');
-  });
+  var retryCount = 0;
+  function tryLoad(){
+    Promise.all([
+      loadScript('data.js', 'data'),
+      loadScript('index_data.js', 'index'),
+      loadScript('listening_data.js', 'listen')
+    ]).then(function() {
+      bootApp();
+    }).catch(function() {
+      retryCount++;
+      if(retryCount < 3){
+        document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">加载失败，第 '+retryCount+' 次重试...</div>';
+        setTimeout(tryLoad, 1000);
+      } else {
+        showRetry('数据加载失败，请检查网络连接', true);
+      }
+    });
+  }
+  tryLoad();
 }
 
 function bootApp() {
@@ -374,6 +406,9 @@ function handleFile(e){
       if(ver < STATE_VERSION) d = migrateState(d, ver);
       Object.keys(LV).forEach(function(k){
         if(d[k] && d[k].active !== undefined) state[k] = d[k];
+        state[k].poolSize = LV[k].listen ? listeningGroups.length : pool.slice(LV[k].a, LV[k].b).filter(function(w){
+          return LV[k].long ? w.sentence_long : true;
+        }).length;
       });
       if(d._todayLog) todayLog = d._todayLog;
       if(d._darkMode !== undefined) darkMode = d._darkMode;
@@ -426,13 +461,121 @@ function note(t,c){
   noteTimer = setTimeout(function(){el.textContent='';el.className='note';},3500);
 }
 
-function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return (s||’’).replace(/&/g,’&amp;’).replace(/</g,’&lt;’).replace(/>/g,’&gt;’);}
+
+// ---- Irregular word forms -> base form ----
+var IRREGULAR = {};
+(function(){
+  var list = [
+    // Past tense
+    ‘wrote,write’,’taught,teach’,’bought,buy’,’brought,bring’,’thought,think’,
+    ‘caught,catch’,’fought,fight’,’sought,seek’,’spoke,speak’,’broke,break’,
+    ‘chose,choose’,’drove,drive’,’gave,give’,’took,take’,’ate,eat’,’fell,fall’,
+    ‘grew,grow’,’knew,know’,’threw,throw’,’drew,draw’,’flew,fly’,’blew,blow’,
+    ‘hid,hide’,’bit,bite’,’went,go’,’rode,ride’,’rose,rise’,’sang,sing’,
+    ‘sank,sink’,’swam,swim’,’drank,drink’,’rang,ring’,’struck,strike’,
+    ‘swore,swear’,’tore,tear’,’wore,wear’,’lay,lie’,’led,lead’,
+    ‘meant,mean’,’sent,send’,’spent,spend’,’built,build’,’lent,lend’,
+    ‘lost,lose’,’heard,hear’,’held,hold’,’told,tell’,’sold,sell’,
+    ‘paid,pay’,’said,say’,’laid,lay’,’found,find’,’bound,bind’,’ground,grind’,
+    ‘shone,shine’,’won,win’,’met,meet’,’shot,shoot’,’kept,keep’,
+    // Past participle (distinct forms)
+    ‘been,be’,’done,do’,’gone,go’,’seen,see’,’taken,take’,’written,write’,
+    ‘driven,drive’,’given,give’,’eaten,eat’,’fallen,fall’,’grown,grow’,
+    ‘known,know’,’thrown,throw’,’drawn,draw’,’flown,fly’,’blown,blow’,
+    ‘hidden,hide’,’bitten,bite’,’broken,break’,’chosen,choose’,’spoken,speak’,
+    ‘stolen,steal’,’forgotten,forget’,’shaken,shake’,
+    ‘risen,rise’,’ridden,ride’,’woken,wake’,
+    ‘worn,wear’,’torn,tear’,’sworn,swear’,’borne,bear’,’frozen,freeze’,
+    // Irregular plurals
+    ‘children,child’,’men,man’,’women,woman’,’teeth,tooth’,’feet,foot’,
+    ‘mice,mouse’,’geese,goose’,’oxen,ox’,’lives,life’,’wives,wife’,
+    ‘knives,knife’,’leaves,leaf’,’selves,self’,’thieves,thief’,
+    ‘wolves,wolf’,
+    // Greek/Latin plurals
+    ‘phenomena,phenomenon’,’criteria,criterion’,’data,datum’
+  ];
+  for(var i=0;i<list.length;i++){
+    var p=list[i].split(‘,’);
+    IRREGULAR[p[0]]=p[1];
+  }
+})();
+
+function normalizeWord(token){
+  if(!token||token.length<3)return null;
+  var c;
+
+  // 0) Irregular lookup
+  if(IRREGULAR[token]&&w2r[IRREGULAR[token]])return IRREGULAR[token];
+
+  // 1) -ies -> -y (countries->country)
+  if(token.length>4&&token.slice(-3)===’ies’){
+    c=token.slice(0,-3)+’y’;if(w2r[c])return c;
+    c=token.slice(0,-1);if(w2r[c])return c;
+  }
+
+  // 2) -ing -> stem + doubled consonant + silent-e (designing->design, running->run, policing->police)
+  if(token.length>5&&token.slice(-3)===’ing’){
+    c=token.slice(0,-3);if(w2r[c])return c;
+    if(c.length>2&&c[c.length-1]===c[c.length-2]){c=c.slice(0,-1);if(w2r[c])return c;}
+    c=token.slice(0,-3)+’e’;if(w2r[c])return c;
+    // -ying -> -ie (dying->die, tying->tie)
+    if(token.slice(-4)===’ying’){c=token.slice(0,-4)+’ie’;if(w2r[c])return c;}
+  }
+
+  // 3) -ed -> stem + doubled consonant + -ied->-y + silent-e (frustrated->frustrate)
+  if(token.length>5&&token.slice(-2)===’ed’){
+    c=token.slice(0,-2);if(w2r[c])return c;
+    if(token.slice(-3)===’ied’){c=token.slice(0,-3)+’y’;if(w2r[c])return c;}
+    if(c.length>2&&c[c.length-1]===c[c.length-2]){c=c.slice(0,-1);if(w2r[c])return c;}
+    c=token.slice(0,-2)+’e’;if(w2r[c])return c;
+  }
+
+  // 4) -es -> stem + silent-e (kites->kite before kit)
+  if(token.length>4&&token.slice(-2)===’es’){
+    c=token.slice(0,-2)+’e’;if(w2r[c])return c;
+    c=token.slice(0,-2);if(w2r[c])return c;
+    c=token.slice(0,-1);if(w2r[c])return c;
+  }
+
+  // 5) -s -> stem
+  if(token.length>4&&token[token.length-1]===’s’){
+    c=token.slice(0,-1);if(w2r[c])return c;
+  }
+
+  // 6) -ly -> stem + -ily->-y + -ally->-ic/-al
+  if(token.length>5&&token.slice(-2)===’ly’){
+    c=token.slice(0,-2);if(w2r[c])return c;
+    if(token.length>5&&token.slice(-3)===’ily’){c=token.slice(0,-3)+’y’;if(w2r[c])return c;}
+    if(token.length>6&&token.slice(-4)===’ally’){
+      c=token.slice(0,-4)+’ic’;if(w2r[c])return c;
+      c=token.slice(0,-4)+’al’;if(w2r[c])return c;
+    }
+  }
+
+  // 7) -er/-est comparatives + doubled consonant
+  if(token.length>5&&token.slice(-3)===’est’){
+    c=token.slice(0,-3);if(w2r[c])return c;
+    if(c.length>2&&c[c.length-1]===c[c.length-2]){c=c.slice(0,-1);if(w2r[c])return c;}
+  }
+  if(token.length>5&&token.slice(-2)===’er’){
+    c=token.slice(0,-2);if(w2r[c])return c;
+    if(c.length>2&&c[c.length-1]===c[c.length-2]){c=c.slice(0,-1);if(w2r[c])return c;}
+  }
+
+  // 8) -tion -> -te (computation->compute, application->apply 不行，跳过)
+  // 不是可靠的规则，不添加
+
+  return null;
+}
 
 function wrapWords(enText){
-  return enText.replace(/[a-zA-ZÀ-ɏ]+(?:['’][a-z]+)*/g, function(m){
-    var lower = m.toLowerCase().replace(/['’]/g, '\'');
-    var isBank = wordBank[lower] ? ' in-bank' : '';
-    return '<span class="word'+isBank+'" data-word="'+esc(lower)+'">'+esc(m)+'</span>';
+  return enText.replace(/[a-zA-ZÀ-ɏ]+(?:[‘’][a-z]+)*/g, function(m){
+    var lower = m.toLowerCase().replace(/[‘’]/g, ‘\’’);
+    var base = w2r[lower] ? lower : (normalizeWord(lower) || null);
+    if (!base) return esc(m);
+    var isBank = wordBank[base] ? ‘ in-bank’ : ‘’;
+    return ‘<span class="word’+isBank+’" data-word="’+esc(base)+’">’+esc(m)+’</span>’;
   });
 }
 

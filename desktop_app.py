@@ -28,21 +28,30 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == '/api/load':
             self._serve_progress()
         else:
-            # Serve static files from DATA_DIR (bundled in .exe or local dir)
+            # Serve static files: external (hot-update) → bundled (built-in)
             parsed = urlparse(self.path)
-            path = os.path.join(DATA_DIR, parsed.path.lstrip('/'))
-            if os.path.exists(path):
-                self.send_response(200)
-                ct = self._mime(path)
-                self.send_header('Content-Type', ct)
-                self.end_headers()
-                with open(path, 'rb') as f:
-                    self.wfile.write(f.read())
+            filename = parsed.path.lstrip('/')
+            ext_path = os.path.join(USER_DIR, filename)
+            bd_path = os.path.join(DATA_DIR, filename)
+            if os.path.exists(ext_path):
+                path = ext_path
+            elif os.path.exists(bd_path):
+                path = bd_path
             else:
                 self.send_error(404)
+                return
+            self.send_response(200)
+            ct = self._mime(path)
+            self.send_header('Content-Type', ct)
+            self.end_headers()
+            with open(path, 'rb') as f:
+                self.wfile.write(f.read())
 
     def _serve_main(self):
-        html_path = os.path.join(DATA_DIR, 'index.html')
+        # Prefer external index.html for hot-update, fallback to bundled
+        html_path = os.path.join(USER_DIR, 'index.html')
+        if not os.path.exists(html_path):
+            html_path = os.path.join(DATA_DIR, 'index.html')
         with open(html_path, 'r', encoding='utf-8') as f:
             html = f.read()
 
