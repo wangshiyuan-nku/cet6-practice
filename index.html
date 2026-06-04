@@ -734,6 +734,8 @@ function renderListening(){
       '<button class="tb" id="btn-random">随机刷新</button>'+
       '<button class="tb" id="btn-dark">'+(darkMode?'浅色模式':'深色模式')+'</button>'+
       '<button class="tb danger" id="btn-reset">重置进度</button>'+
+      '<button class="tb" id="btn-sync" title="即将推出">云同步</button>'+
+      '<button class="tb" id="btn-guide" style="color:#4a90c4;border-color:#4a90c4">新手指导</button>'+
       '<button class="tb" id="btn-refresh-cache" style="color:#c08050;border-color:#c08050;font-size:.7em" title="清除缓存重新加载最新版本">刷新缓存</button>'+
       '<button class="tb" id="btn-reports" style="color:var(--danger);border-color:var(--danger)" title="查看已标记的问题句子">问题标记'+(Object.keys(reportedSentences).length?' ('+Object.keys(reportedSentences).length+')':'')+'</button>'+
     '</div>'+
@@ -763,13 +765,15 @@ function renderListening(){
       ' &nbsp;|&nbsp; T 翻译 · N 下一组'+
     '</div>';
 
-  document.getElementById('btn-stats').onclick = showStatsPanel;
-  document.getElementById('btn-backup').onclick = backup;
-  document.getElementById('btn-restore').onclick = restore;
-  document.getElementById('btn-random').onclick = shuffle;
-  document.getElementById('btn-dark').onclick = toggleDark;
-  document.getElementById('btn-reset').onclick = resetAll;
-  document.getElementById('btn-refresh-cache').onclick = refreshCache;
+  var _el=document.getElementById('btn-stats'); if(_el) _el.onclick = showStatsPanel;
+  var _el=document.getElementById('btn-backup'); if(_el) _el.onclick = backup;
+  var _el=document.getElementById('btn-restore'); if(_el) _el.onclick = restore;
+  var _el=document.getElementById('btn-random'); if(_el) _el.onclick = shuffle;
+  var _el=document.getElementById('btn-dark'); if(_el) _el.onclick = toggleDark;
+  var _el=document.getElementById('btn-reset'); if(_el) _el.onclick = resetAll;
+  var _el=document.getElementById('btn-sync'); if(_el) _el.onclick = function(){ note('云同步功能即将推出，敬请期待', 'ok'); };
+  var _el=document.getElementById('btn-guide'); if(_el) _el.onclick = showGuide;
+  var _el=document.getElementById('btn-refresh-cache'); if(_el) _el.onclick = refreshCache;
   var btnReports = document.getElementById('btn-reports');
   if(btnReports) btnReports.onclick = renderReportPanel;
   var helpBtn = document.getElementById('btn-help');
@@ -794,7 +798,7 @@ function renderListening(){
     };
   }
 
-  document.getElementById('btn-listen-next').onclick = function(){
+  var _el=document.getElementById('btn-listen-next'); if(_el) _el.onclick = function(){
     // Mark all 4 sentences as mastered
     group.sentences.forEach(function(s){
       var ls = state['L5'];
@@ -805,7 +809,7 @@ function renderListening(){
     renderListening();
   };
 
-  document.getElementById('btn-listen-skip').onclick = function(){
+  var _el=document.getElementById('btn-listen-skip'); if(_el) _el.onclick = function(){
     group.sentences.forEach(function(s){
       var ls = state['L5'];
       if(!ls.stats[s.rank]) ls.stats[s.rank] = {};
