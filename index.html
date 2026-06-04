@@ -38,14 +38,7 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
   font-size:.85em;cursor:pointer;border-radius:4px}
 .lv:hover,.lv.on{background:var(--border);color:#fff}
 .lv.long{border-color:#c08050;color:#c08050}.lv.long:hover,.lv.long.on{background:#c08050;color:#fff}
-.lv.listen{border-color:#7b5ea7;color:#7b5ea7}.lv.listen:hover,.lv.listen.on{background:#7b5ea7;color:#fff}
 .en-long{font-size:.92em;line-height:1.55}.zh-long{font-size:.8em;line-height:1.45}
-.listen-group{counter-reset:lsn}
-.listen-en{font-size:.95em;line-height:1.7;padding:6px 0}
-.listen-en::before{counter-increment:lsn;content:counter(lsn)". ";color:var(--light);font-weight:bold}
-.listen-zh{font-size:.8em;color:var(--muted);line-height:1.6;padding:2px 0;display:none}
-.listen-zh::before{content:"→ ";color:var(--light)}
-.listen-divider{border:none;border-top:1px dashed var(--dash);margin:6px 0 8px}
 .stats-bar{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:6px 10px;font-size:.76em;color:var(--muted)}
 .stats-bar span{background:var(--stat-bg);padding:3px 10px;border-radius:3px;white-space:nowrap}
 .note{text-align:center;font-size:.74em;min-height:1.1em;margin:2px 0}
@@ -103,7 +96,7 @@ body{font-family:Georgia,'Microsoft YaHei',serif;background:var(--bg);color:var(
 
 <script>
 var APP_VERSION = '2.4';
-var LOADED = {data: false, index: false, listen: false};
+var LOADED = {data: false, index: false};
 var SCRIPT_TIMEOUT = 30000;
 
 function loadScript(src, name) {
@@ -148,8 +141,7 @@ function initApp() {
   function tryLoad(){
     Promise.all([
       loadScript('data.js', 'data'),
-      loadScript('index_data.js', 'index'),
-      loadScript('listening_data.js', 'listen')
+      loadScript('index_data.js', 'index')
     ]).then(function() {
       bootApp();
     }).catch(function() {
@@ -180,17 +172,8 @@ var LV = {
   L1:{label:'基础级（高频 2000 词）',a:0,b:2000},
   L2:{label:'进阶级（核心 2500 词）',a:2000,b:4500},
   L3:{label:'高级（进阶 3514 词）',a:4500,b:n},
-  L4:{label:'长阅读',a:0,b:n,long:true},
-  L5:{label:'听力训练',a:0,b:n,listen:true}
+  L4:{label:'长阅读',a:0,b:n,long:true}
 };
-
-// Pre-made listening groups (100 groups, 4 sentences each, same theme)
-var listeningGroups = window.LISTENING_GROUPS || [];
-// Shuffle group order for each user
-for(var i = listeningGroups.length - 1; i > 0; i--){
-  var j = Math.floor(Math.random() * (i + 1));
-  var tmp = listeningGroups[i]; listeningGroups[i] = listeningGroups[j]; listeningGroups[j] = tmp;
-}
 
 var state = {}, cur = 'L1', noteTimer = null, darkMode = false;
 var wordBank = {};
@@ -239,7 +222,7 @@ function loadLocal(){
     if(ver < STATE_VERSION) cpt = migrateState(cpt, ver);
     Object.keys(LV).forEach(function(k){
       if(cpt[k] && cpt[k].active !== undefined) state[k] = cpt[k];
-      state[k].poolSize = LV[k].listen ? listeningGroups.length : pool.slice(LV[k].a, LV[k].b).filter(function(w){
+      state[k].poolSize = pool.slice(LV[k].a, LV[k].b).filter(function(w){
         return LV[k].long ? w.sentence_long : true;
       }).length;
     });
@@ -260,7 +243,7 @@ function logToday(action){
 
 function initState(){
   Object.keys(LV).forEach(function(k){
-    var sz = LV[k].listen ? listeningGroups.length : pool.slice(LV[k].a, LV[k].b).length;
+    var sz = pool.slice(LV[k].a, LV[k].b).length;
     state[k] = {active:[],stats:{},poolSize:sz};
   });
 }
@@ -338,7 +321,7 @@ function stats(){
   var t=0,m=0,e=0;
   Object.keys(LV).forEach(function(k){
     var ls=state[k];
-    if(!LV[k].long && !LV[k].listen) t+=ls.poolSize||0;
+    if(!LV[k].long) t+=ls.poolSize||0;
     else if(LV[k].long) t=Math.max(t, ls.poolSize||0);
     Object.keys(ls.stats||{}).forEach(function(rk){
       if(ls.stats[rk].mastered) m++;
@@ -406,7 +389,7 @@ function handleFile(e){
       if(ver < STATE_VERSION) d = migrateState(d, ver);
       Object.keys(LV).forEach(function(k){
         if(d[k] && d[k].active !== undefined) state[k] = d[k];
-        state[k].poolSize = LV[k].listen ? listeningGroups.length : pool.slice(LV[k].a, LV[k].b).filter(function(w){
+        state[k].poolSize = pool.slice(LV[k].a, LV[k].b).filter(function(w){
           return LV[k].long ? w.sentence_long : true;
         }).length;
       });
@@ -684,145 +667,7 @@ function showStatsPanel(){
   if(darkMode) document.body.classList.add('dark');
 }
 
-// ---- Listening Training ----
-function getSeenGroups(){
-  try{ return JSON.parse(localStorage.getItem('cet6_seen_groups') || '[]'); }catch(e){ return []; }
-}
-function saveSeenGroups(arr){ localStorage.setItem('cet6_seen_groups', JSON.stringify(arr)); }
-
-function renderListening(){
-  var s = stats(), ts = todayStats();
-  var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
-
-  document.getElementById('today-info').textContent =
-    '今日：已学 '+ts.total+' 句 | 掌握 '+ts.know+' | 跳过 '+ts.skip +
-    ' | 累计掌握 '+s.mastered+' 词 ('+pct+'%)';
-
-  if(darkMode) document.body.classList.add('dark');
-  else document.body.classList.remove('dark');
-
-  var seen = getSeenGroups();
-
-  // Pick an unseen group; if all seen, reset
-  var available = [];
-  for(var i = 0; i < listeningGroups.length; i++){
-    if(seen.indexOf(i) < 0) available.push(i);
-  }
-  if(available.length === 0){ seen = []; saveSeenGroups(seen); available = listeningGroups.map(function(_,i){return i;}); }
-  var gi = available[Math.floor(Math.random() * available.length)];
-  var group = listeningGroups[gi];
-  seen.push(gi); saveSeenGroups(seen);
-
-  var enHTML = group.sentences.map(function(s){
-    return '<div class="listen-en">' + wrapWords(s.en) + '</div>';
-  }).join('');
-  var zhHTML = group.sentences.map(function(s){
-    return '<div class="listen-zh">' + esc(s.zh) + '</div>';
-  }).join('');
-
-  var remaining = listeningGroups.length - seen.length;
-
-  var lvHTML = Object.keys(LV).map(function(k){
-    return '<button class="lv'+(cur===k?' on':'')+(LV[k].long?' long':'')+(LV[k].listen?' listen':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
-  }).join('');
-
-  document.getElementById('app').innerHTML =
-    '<div class="tools">'+
-      '<button class="tb" id="btn-stats">学习统计</button>'+
-      '<button class="tb" id="btn-backup">备份进度</button>'+
-      '<button class="tb green" id="btn-restore">恢复进度</button>'+
-      '<button class="tb" id="btn-random">随机刷新</button>'+
-      '<button class="tb" id="btn-dark">'+(darkMode?'浅色模式':'深色模式')+'</button>'+
-      '<button class="tb danger" id="btn-reset">重置进度</button>'+
-      '<button class="tb" id="btn-sync" title="即将推出">云同步</button>'+
-      '<button class="tb" id="btn-guide" style="color:#4a90c4;border-color:#4a90c4">新手指导</button>'+
-      '<button class="tb" id="btn-refresh-cache" style="color:#c08050;border-color:#c08050;font-size:.7em" title="清除缓存重新加载最新版本">刷新缓存</button>'+
-      '<button class="tb" id="btn-reports" style="color:var(--danger);border-color:var(--danger)" title="查看已标记的问题句子">问题标记'+(Object.keys(reportedSentences).length?' ('+Object.keys(reportedSentences).length+')':'')+'</button>'+
-    '</div>'+
-    '<div class="levels">'+lvHTML+'</div>'+
-    '<div class="stats-bar">'+
-      '<span>今日 '+ts.know+' 掌握 / '+ts.skip+' 跳过</span>'+
-      '<span>累计 '+s.mastered+'/'+s.total+' ('+pct+'%)</span>'+
-      '<span>剩余 '+remaining+' 组</span>'+
-    '</div>'+
-    '<div class="note" id="note"></div>'+
-    '<div class="main">'+
-      '<div class="card" style="border-left-color:#7b5ea7">'+
-        '<div class="hdr"><span class="rnk">听力训练 · ' + esc(group.topic) + '</span><span class="cnt">' + remaining + ' 组未练</span></div>'+
-        '<div class="listen-group">' + enHTML + '</div>'+
-        '<hr class="listen-divider">'+
-        '<button class="tgl" id="tgl-listen" style="margin-bottom:6px">查看翻译 / 隐藏</button>'+
-        '<div id="zh-group">' + zhHTML + '</div>'+
-        '<div class="acts">'+
-          '<button class="btn btn-yes" id="btn-listen-next">下一组</button>'+
-          '<button class="btn btn-no" id="btn-listen-skip">跳过</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="foot">'+
-      '<a href="#" id="btn-help" style="color:var(--light);margin-right:12px">使用说明</a>'+
-      '<a href="https://github.com/wangshiyuan-nku/cet6-practice" target="_blank" style="color:var(--light)">GitHub 仓库</a>'+
-      ' &nbsp;|&nbsp; T 翻译 · N 下一组'+
-    '</div>';
-
-  var _el=document.getElementById('btn-stats'); if(_el) _el.onclick = showStatsPanel;
-  var _el=document.getElementById('btn-backup'); if(_el) _el.onclick = backup;
-  var _el=document.getElementById('btn-restore'); if(_el) _el.onclick = restore;
-  var _el=document.getElementById('btn-random'); if(_el) _el.onclick = shuffle;
-  var _el=document.getElementById('btn-dark'); if(_el) _el.onclick = toggleDark;
-  var _el=document.getElementById('btn-reset'); if(_el) _el.onclick = resetAll;
-  var _el=document.getElementById('btn-sync'); if(_el) _el.onclick = function(){ note('云同步功能即将推出，敬请期待', 'ok'); };
-  var _el=document.getElementById('btn-guide'); if(_el) _el.onclick = showGuide;
-  var _el=document.getElementById('btn-refresh-cache'); if(_el) _el.onclick = refreshCache;
-  var btnReports = document.getElementById('btn-reports');
-  if(btnReports) btnReports.onclick = renderReportPanel;
-  var helpBtn = document.getElementById('btn-help');
-  if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
-
-  Object.keys(LV).forEach(function(k){
-    var el = document.getElementById('lv-'+k);
-    if(el) el.onclick = function(){
-      cur = k;
-      if(LV[k].listen) renderListening();
-      else { if(state[cur].active.length===0) refill(cur); render(); }
-    };
-  });
-
-  var tglBtn = document.getElementById('tgl-listen');
-  var zhGroup = document.getElementById('zh-group');
-  if(tglBtn && zhGroup){
-    tglBtn.onclick = function(){
-      var divs = zhGroup.querySelectorAll('.listen-zh');
-      var showing = divs.length > 0 && divs[0].style.display === 'block';
-      divs.forEach(function(d){ d.style.display = showing ? 'none' : 'block'; });
-    };
-  }
-
-  var _el=document.getElementById('btn-listen-next'); if(_el) _el.onclick = function(){
-    // Mark all 4 sentences as mastered
-    group.sentences.forEach(function(s){
-      var ls = state['L5'];
-      if(!ls.stats[s.rank]) ls.stats[s.rank] = {};
-      ls.stats[s.rank].exposed = (ls.stats[s.rank].exposed||0) + 1;
-    });
-    logToday('know'); saveLocal();
-    renderListening();
-  };
-
-  var _el=document.getElementById('btn-listen-skip'); if(_el) _el.onclick = function(){
-    group.sentences.forEach(function(s){
-      var ls = state['L5'];
-      if(!ls.stats[s.rank]) ls.stats[s.rank] = {};
-      ls.stats[s.rank].skipCount = (ls.stats[s.rank].skipCount||0) + 1;
-      ls.stats[s.rank].exposed = (ls.stats[s.rank].exposed||0) + 1;
-    });
-    logToday('skip'); saveLocal();
-    renderListening();
-  };
-}
-
 function render(){
-  if(LV[cur] && LV[cur].listen){ renderListening(); return; }
   var s = stats(), ts = todayStats();
   var pct = s.total>0 ? (100*s.mastered/s.total).toFixed(1) : '0.0';
 
@@ -834,7 +679,7 @@ function render(){
   else document.body.classList.remove('dark');
 
   var lvHTML = Object.keys(LV).map(function(k){
-    return '<button class="lv'+(cur===k?' on':'')+(LV[k].long?' long':'')+(LV[k].listen?' listen':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
+    return '<button class="lv'+(cur===k?' on':'')+(LV[k].long?' long':'')+'" id="lv-'+k+'">'+LV[k].label+'</button>';
   }).join('');
 
   var ls = state[cur];
@@ -950,7 +795,7 @@ var enHTML = wrapWords(enText);
   });
 
   // Word double-click popup bindings
-  var wordEls = document.querySelectorAll('.en .word, .listen-en .word');
+  var wordEls = document.querySelectorAll('.en .word');
   wordEls.forEach(function(el){
     el.ondblclick = function(e){
       e.preventDefault();
@@ -985,7 +830,6 @@ document.addEventListener('keydown', function(e){
     case 'k': var b=document.querySelector('.btn-yes'); if(b) b.click(); break;
     case 's': var b=document.querySelector('.btn-no'); if(b) b.click(); break;
     case 't': var b=document.querySelector('.tgl'); if(b) b.click(); break;
-    case 'n': var nb=document.getElementById('btn-listen-next'); if(nb) nb.click(); break;
     case 'r': shuffle(); break;
     case 'd': toggleDark(); break;
     case 'b': backup(); break;
@@ -998,7 +842,7 @@ var GUIDE_PAGES = [
     '<div style="font-size:3em;margin:20px 0">&#x1F4DA;</div>'+
     '<h3 style="margin-bottom:8px">欢迎使用 CET-6 词汇句子练习</h3>'+
     '<p style="color:var(--muted);font-size:.85em;line-height:1.7">本工具帮你通过<b>阅读句子</b>来自测六级词汇量。<br>不用背单词书，读句子就能判断是否掌握。</p>'+
-    '<p style="font-size:.82em;color:var(--light);margin-top:10px">约 8,000 个六级词汇 · 5 个难度等级 · 手机电脑都能用</p>'+
+    '<p style="font-size:.82em;color:var(--light);margin-top:10px">约 8,000 个六级词汇 · 4 个难度等级 · 手机电脑都能用</p>'+
   '</div>',
 
   '<h4 style="margin-bottom:10px">&#x1F4D6; 怎么学习？</h4>'+
@@ -1011,13 +855,12 @@ var GUIDE_PAGES = [
   '</div>'+
   '<p style="font-size:.76em;color:var(--muted);margin-top:8px">快捷键：<b>K</b> 认识 · <b>S</b> 跳过 · <b>T</b> 翻译 · <b>R</b> 刷新 · <b>D</b> 深色</p>',
 
-  '<h4 style="margin-bottom:10px">&#x1F3AF; 五个等级</h4>'+
+  '<h4 style="margin-bottom:10px">&#x1F3AF; 四个等级</h4>'+
     '<div style="font-size:.84em;line-height:1.9">'+
     '<p><b>基础级</b>（~2,000 词）：高频日常词汇，建议从这开始</p>'+
     '<p><b>进阶级</b>（~2,500 词）：六级核心词汇，中等难度</p>'+
     '<p><b>高级</b>（~3,514 词）：低频进阶词汇，冲刺高分</p>'+
     '<p style="color:#c08050"><b>长阅读</b>（~2,400 词）：完整长句版，深度训练</p>'+
-    '<p style="color:#7b5ea7"><b>听力训练</b>（100 组）：4 句一组同主题，模拟六级听力</p>'+
   '</div>'+
   '<p style="font-size:.76em;color:var(--muted);margin-top:8px">建议按顺序学习。每个等级 10 条句子，用完自动补新。</p>',
 
@@ -1093,7 +936,7 @@ function showHelp(){
   var h='<div class="card" style="max-width:600px;margin:20px auto;text-align:left;font-size:.85em;line-height:1.7">'+
     '<h3 style="margin-bottom:10px">CET-6 词汇句子练习 v' + APP_VERSION + ' — 使用说明</h3>'+
     '<p><b>目标：</b>通过阅读英语句子自测六级词汇，掌握约 8,000 个词。</p>'+
-    '<p><b>等级切换：</b>顶部 5 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）、<span style="color:#7b5ea7">听力训练</span>（100 组主题听力）。</p>'+
+    '<p><b>等级切换：</b>顶部 4 个标签可切换不同难度。基础级（高频 2,000 词）、进阶级（核心 2,500 词）、高级（进阶 3,514 词）、<span style="color:#c08050">长阅读</span>（原版长句完整版）。</p>'+
     '<p><b>操作：</b>读句子 → 点「查看翻译」对照理解 → 看懂了点认识」标记掌握，不确定点「跳过」稍后再出现。</p>'+
     '<p><b>交叉掌握：</b>「认识」一个句子后，句中所有六级词汇都会标记为已掌握，最大化学习效率。</p>'+
     '<p><b>跳过追踪：</b>每跳过一次会累计，反馈为「上次未掌握」标记和薄弱词汇排行。</p>'+
