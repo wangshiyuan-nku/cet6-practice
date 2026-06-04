@@ -765,7 +765,8 @@ function renderListening(){
   document.getElementById('btn-restore').onclick = restore;
   document.getElementById('btn-dark').onclick = toggleDark;
   document.getElementById('btn-refresh-cache').onclick = refreshCache;
-  document.getElementById('btn-reports').onclick = renderReportPanel;
+  var btnReports = document.getElementById('btn-reports');
+  if(btnReports) btnReports.onclick = renderReportPanel;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
@@ -899,7 +900,8 @@ var enHTML = wrapWords(enText);
   document.getElementById('btn-stats').onclick = showStatsPanel;
   document.getElementById('btn-guide').onclick = showGuide;
   document.getElementById('btn-refresh-cache').onclick = refreshCache;
-  document.getElementById('btn-reports').onclick = renderReportPanel;
+  var btnReports = document.getElementById('btn-reports');
+  if(btnReports) btnReports.onclick = renderReportPanel;
   var helpBtn = document.getElementById('btn-help');
   if(helpBtn) helpBtn.onclick = function(e){ e.preventDefault(); showHelp(); };
 
